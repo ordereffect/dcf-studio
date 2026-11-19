@@ -41,6 +41,7 @@ export function SensitivityTab({ a, currency, price }: { a: Assumptions; currenc
   return (
     <Panel
       title="Sensitivity"
+      info="sensitivity"
       note={price ? "Green is above today's price, red below. The outlined cell is your base case." : "Shaded against the base case."}
     >
       <div role="tablist" aria-label="Sensitivity table" className="mb-4 flex flex-wrap gap-2">

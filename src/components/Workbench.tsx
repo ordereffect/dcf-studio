@@ -3,7 +3,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { useModel } from "@/lib/store";
+import { useModel, useUi } from "@/lib/store";
 import { runDcf } from "@/lib/dcf/engine";
 import { monteCarlo, scenarioValues } from "@/lib/dcf/analysis";
 import type { CompanyData } from "@/lib/dcf/types";
@@ -11,6 +11,8 @@ import { DEMO_COMPANY } from "@/lib/demo";
 import { big, money, pct, signedPct } from "@/lib/format";
 import { TickerSearch } from "./TickerSearch";
 import { ThemeToggle } from "./ThemeToggle";
+import { InfoTip } from "./InfoTip";
+import { Tour, TourButton } from "./Tour";
 import { ValueRail } from "./ValueRail";
 import { AssumptionsPanel } from "./AssumptionsPanel";
 import { Stat } from "./ui";
@@ -29,7 +31,7 @@ const TABS = [
   { id: "history", label: "History" },
   { id: "brief", label: "Brief for Claude" },
 ] as const;
-type TabId = (typeof TABS)[number]["id"];
+
 
 function blankCompany(ticker: string): CompanyData {
   return {
@@ -96,6 +98,7 @@ export function Workbench({ ticker }: { ticker: string }) {
           <div className="ml-auto w-full max-w-xs">
             <TickerSearch />
           </div>
+          {status === "ready" && <TourButton />}
           <ThemeToggle />
         </div>
       </header>
@@ -142,19 +145,22 @@ function Ready() {
   const setPrice = useModel((s) => s.setPrice);
   const scenarios = useModel((s) => s.scenarios);
   const reset = useModel((s) => s.reset);
-  const [tab, setTab] = useState<TabId>("model");
+  const tab = useUi((s) => s.tab);
+  const setTab = useUi((s) => s.setTab);
+  const tourOpen = useUi((s) => s.tourOpen);
 
   // Terminal-style shortcuts: number keys switch views when you're not typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
+      if (useUi.getState().tourOpen) return;
       if (e.metaKey || e.ctrlKey || e.altKey || el.closest("input, textarea, select, [contenteditable]")) return;
       const i = Number(e.key) - 1;
       if (i >= 0 && i < TABS.length) setTab(TABS[i].id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setTab]);
 
   // Heavy views (simulation, grids) follow the deferred value so dragging stays smooth.
   const a = useDeferredValue(liveA);
@@ -170,6 +176,7 @@ function Ready() {
 
   return (
     <main className="mx-auto max-w-[1440px] px-4 pb-24 sm:px-6">
+      {tourOpen && <Tour />}
       {/* Identity + headline value */}
       <section className="grid gap-6 pt-8 lg:grid-cols-[1fr_auto] lg:items-end">
         <div className="min-w-0">
@@ -197,9 +204,12 @@ function Ready() {
             ))}
           </dl>
         </div>
-        <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-3" data-tour="headline">
           <div>
-            <div className="text-[12.5px] text-muted">Intrinsic value per share</div>
+            <div className="flex items-center gap-1.5 text-[12.5px] text-muted">
+              Intrinsic value per share
+              <InfoTip id="intrinsic" />
+            </div>
             <div className="num text-[clamp(36px,5vw,56px)] font-bold leading-none tracking-[-0.04em] text-brass">
               {money(v.valuePerShare, c.currency)}
             </div>
@@ -216,7 +226,10 @@ function Ready() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-[3px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8">
+      <section data-tour="rail" className="relative mt-6 rounded-[3px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8">
+        <div className="absolute right-3 top-3">
+          <InfoTip id="rail" />
+        </div>
         <ValueRail
           currency={c.currency}
           price={price}
@@ -229,11 +242,11 @@ function Ready() {
         />
         <div className="mt-5 grid grid-cols-2 gap-4 border-t border-rule pt-4 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="Enterprise value" value={big(v.enterpriseValue, c.currency)} />
-          <Stat label="Equity value" value={big(v.equityValue, c.currency)} sub={price ? `Market cap ${big(price * liveA.sharesOutstanding, c.currency)}` : undefined} />
-          <Stat label="WACC" value={pct(v.wacc.wacc, 2)} sub={`Cost of equity ${pct(v.wacc.costOfEquity, 1)}`} />
-          <Stat label="Terminal value share" value={pct(v.terminalShare, 0)} tone={v.terminalShare > 0.8 ? "down" : undefined} />
-          <Stat label={`Year-${liveA.forecastYears} ROIC`} value={pct(v.years.at(-1)?.roic)} sub={`vs WACC ${pct(v.wacc.wacc, 1)}`} />
-          <Stat label="Weighted value" value={money(sv.weighted, c.currency)} sub={price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined} />
+          <Stat label="Equity value" info="bridge" value={big(v.equityValue, c.currency)} sub={price ? `Market cap ${big(price * liveA.sharesOutstanding, c.currency)}` : undefined} />
+          <Stat label="WACC" info="costOfCapital" value={pct(v.wacc.wacc, 2)} sub={`Cost of equity ${pct(v.wacc.costOfEquity, 1)}`} />
+          <Stat label="Terminal value share" info="terminalShare" value={pct(v.terminalShare, 0)} tone={v.terminalShare > 0.8 ? "down" : undefined} />
+          <Stat label={`Year-${liveA.forecastYears} ROIC`} info="roicOut" value={pct(v.years.at(-1)?.roic)} sub={`vs WACC ${pct(v.wacc.wacc, 1)}`} />
+          <Stat label="Weighted value" info="weighted" value={money(sv.weighted, c.currency)} sub={price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined} />
         </div>
       </section>
 
@@ -269,6 +282,7 @@ function Ready() {
               <button
                 key={t.id}
                 role="tab"
+                data-tour={`tab-${t.id}`}
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 title={`Press ${i + 1}`}

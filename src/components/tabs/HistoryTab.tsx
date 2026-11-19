@@ -38,7 +38,7 @@ export function HistoryTab({ c }: { c: CompanyData }) {
 
   return (
     <div className="grid gap-5">
-      <Panel title="Revenue and operating margin">
+      <Panel title="Revenue and operating margin" info="history">
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ left: -8, right: 0, top: 4 }}>

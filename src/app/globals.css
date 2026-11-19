@@ -136,3 +136,8 @@ input[type="number"] {
 .recharts-tooltip-wrapper {
   font-family: inherit;
 }
+
+[data-tour] {
+  scroll-margin-top: 72px;
+  scroll-margin-bottom: 24px;
+}

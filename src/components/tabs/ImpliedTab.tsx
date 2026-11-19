@@ -49,7 +49,7 @@ export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyDa
 
   return (
     <div className="grid gap-5">
-      <Panel title="What the price implies" note="Solves for one input at a time, holding the rest of your model fixed.">
+      <Panel title="What the price implies" info="implied" tour="implied" note="Solves for one input at a time, holding the rest of your model fixed.">
         {implied ? (
           <div className="grid gap-4 sm:grid-cols-3">
             <ImpliedCard label="Revenue growth" implied={implied.growth} model={a.revenueGrowth} history={histGrowth} historyLabel="5-yr avg" />
@@ -62,7 +62,7 @@ export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyDa
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Panel title="What moves the value most" note="Value per share when each driver swings alone">
+        <Panel title="What moves the value most" info="tornado" tour="tornado" note="Value per share when each driver swings alone">
           <ul className="grid gap-3">
             {tor.map((t) => {
               const l = Math.min(t.low, t.high);
@@ -88,6 +88,7 @@ export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyDa
 
         <Panel
           title="Range of outcomes"
+          info="monteCarlo"
           note={`${mc.samples.length.toLocaleString()} simulations, shocking growth, margin, WACC and reinvestment together`}
         >
           <div className="h-44">

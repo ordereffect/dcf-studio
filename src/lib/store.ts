@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { defaultScenarios } from "@/lib/dcf/analysis";
 import { deriveAssumptions } from "@/lib/dcf/defaults";
 import type { Assumptions, CompanyData, Scenario, ScenarioShifts } from "@/lib/dcf/types";
+import type { TabId } from "@/lib/learn";
 
 export interface SavedModel {
   ticker: string;
@@ -118,4 +119,18 @@ export const useModel = create<ModelState>((set, get) => ({
     } catch {}
     set({ assumptions: defaults, scenarios: defaultScenarios(), price: company.price, notes: "" });
   },
+}));
+
+
+/** UI state shared by the workbench and the guided tour. */
+export const useUi = create<{
+  tab: TabId;
+  setTab: (t: TabId) => void;
+  tourOpen: boolean;
+  setTourOpen: (o: boolean) => void;
+}>((set) => ({
+  tab: "model",
+  setTab: (tab) => set({ tab }),
+  tourOpen: false,
+  setTourOpen: (tourOpen) => set({ tourOpen }),
 }));

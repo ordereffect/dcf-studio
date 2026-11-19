@@ -34,7 +34,7 @@ export function ModelTab({ v, a, currency, lastFy }: { v: Valuation; a: Assumpti
 
   return (
     <div className="grid gap-5">
-      <Panel title="Projection" note={`${currency} millions · fiscal years after FY${lastFy}`}>
+      <Panel title="Projection" info="projection" tour="projection" note={`${currency} millions · fiscal years after FY${lastFy}`}>
         <div className="-mx-5 overflow-x-auto px-5">
           <table className="num w-full min-w-[640px] text-right text-[13px]">
             <thead>
@@ -64,7 +64,7 @@ export function ModelTab({ v, a, currency, lastFy }: { v: Valuation; a: Assumpti
       </Panel>
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
-        <Panel title="Free cash flow" note="Nominal vs present value">
+        <Panel title="Free cash flow" info="fcff" note="Nominal vs present value">
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chart} barGap={2} margin={{ left: -8, right: 4, top: 4 }}>
@@ -79,7 +79,7 @@ export function ModelTab({ v, a, currency, lastFy }: { v: Valuation; a: Assumpti
           </div>
         </Panel>
 
-        <Panel title="From cash flows to equity">
+        <Panel title="From cash flows to equity" info="bridge" tour="bridge">
           <dl className="num text-[13.5px]">
             {bridge.map((r) => (
               <div key={r.label} className={`flex justify-between py-1.5 ${r.total ? "border-t border-rule font-semibold" : "text-muted"}`}>

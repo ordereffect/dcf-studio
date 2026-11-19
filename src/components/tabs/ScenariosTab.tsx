@@ -19,6 +19,7 @@ export function ScenariosTab({ a, currency, price }: { a: Assumptions; currency:
     <div className="grid gap-5">
       <Panel
         title="Scenarios"
+        info="scenarios"
         note="Bear and bull are shifts from your base case, so they move when the base moves."
       >
         <div className="grid gap-4 md:grid-cols-3">

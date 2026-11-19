@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useId, useState } from "react";
 import clsx from "clsx";
+import { InfoTip } from "./InfoTip";
+import type { LessonId } from "@/lib/learn";
 
 type Unit = "pct" | "x" | "num" | "money" | "years";
 
@@ -15,6 +17,8 @@ interface FieldProps {
   hint?: string;
   defaultValue?: number; // shows a reset dot when the value differs
   decimals?: number;
+  info?: LessonId;
+  tour?: string;
 }
 
 const toDisplay = (v: number, unit: Unit) => (unit === "pct" ? v * 100 : unit === "money" ? v / 1e6 : v);
@@ -22,7 +26,7 @@ const fromDisplay = (v: number, unit: Unit) => (unit === "pct" ? v / 100 : unit 
 const suffix: Record<Unit, string> = { pct: "%", x: "×", num: "", money: "M", years: "yrs" };
 
 /** A labelled number with a slider beneath. Typing and dragging stay in sync. */
-export function Field({ label, value, onChange, unit = "num", min, max, step, hint, defaultValue, decimals }: FieldProps) {
+export function Field({ label, value, onChange, unit = "num", min, max, step, hint, defaultValue, decimals, info, tour }: FieldProps) {
   const id = useId();
   const d = decimals ?? (unit === "pct" ? 1 : unit === "x" ? 2 : unit === "money" ? 0 : 0);
   const shown = toDisplay(value, unit);
@@ -38,10 +42,13 @@ export function Field({ label, value, onChange, unit = "num", min, max, step, hi
   const dStep = toDisplay(step, unit);
 
   return (
-    <div className="group py-2">
+    <div className="group py-2" data-tour={tour}>
       <div className="flex items-baseline justify-between gap-3">
-        <label htmlFor={id} className="flex items-center gap-1.5 text-[13px] text-muted">
+        <div className="flex items-center gap-1.5">
+        <label htmlFor={id} className="text-[13px] text-muted">
           {label}
+        </label>
+          {info && <InfoTip id={info} />}
           {changed && (
             <button
               type="button"
@@ -51,7 +58,7 @@ export function Field({ label, value, onChange, unit = "num", min, max, step, hi
               className="size-1.5 rounded-full bg-brass"
             />
           )}
-        </label>
+        </div>
         <div className="flex items-baseline gap-0.5">
           <input
             id={id}
@@ -94,15 +101,20 @@ export function Toggle<T extends string>({
   value,
   options,
   onChange,
+  info,
 }: {
   label: string;
   value: T;
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
+  info?: LessonId;
 }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2">
-      <span className="text-[13px] text-muted">{label}</span>
+      <span className="flex items-center gap-1.5 text-[13px] text-muted">
+        {label}
+        {info && <InfoTip id={info} />}
+      </span>
       <div role="radiogroup" aria-label={label} className="flex rounded-[3px] border border-rule p-0.5">
         {options.map((o) => (
           <button

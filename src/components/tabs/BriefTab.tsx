@@ -45,6 +45,7 @@ export function BriefTab({ c, a, price }: { c: CompanyData; a: Assumptions; pric
       </Panel>
       <Panel
         title="Brief for Claude"
+        info="brief"
         note="Paste it into your Claude project to build the narrative together"
       >
         <div className="mb-3 flex gap-2">
