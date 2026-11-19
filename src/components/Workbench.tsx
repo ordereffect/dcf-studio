@@ -10,6 +10,7 @@ import type { CompanyData } from "@/lib/dcf/types";
 import { DEMO_COMPANY } from "@/lib/demo";
 import { big, money, pct, signedPct } from "@/lib/format";
 import { TickerSearch } from "./TickerSearch";
+import { ThemeToggle } from "./ThemeToggle";
 import { ValueRail } from "./ValueRail";
 import { AssumptionsPanel } from "./AssumptionsPanel";
 import { Stat } from "./ui";
@@ -83,14 +84,19 @@ export function Workbench({ ticker }: { ticker: string }) {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-20 border-b border-rule bg-paper/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-rule bg-paper">
         <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-4 py-2.5 sm:px-6">
-          <Link href="/" className="shrink-0 text-[15px] font-bold tracking-tight">
-            DCF Studio
-          </Link>
+          <nav aria-label="Breadcrumb" className="flex shrink-0 items-center gap-2 text-[13px] text-brass">
+            <Link href="/" className="hover:underline">
+              DCF Studio
+            </Link>
+            <span className="text-faint">/</span>
+            <span aria-current="page">{ticker}</span>
+          </nav>
           <div className="ml-auto w-full max-w-xs">
             <TickerSearch />
           </div>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -105,11 +111,11 @@ export function Workbench({ ticker }: { ticker: string }) {
                 load(blankCompany(ticker));
                 setStatus("ready");
               }}
-              className="rounded-lg bg-ink px-4 py-2 text-[14px] font-medium text-paper"
+              className="rounded-[3px] bg-brass px-4 py-2 text-[14px] font-semibold text-[#111]"
             >
               Model {ticker} by hand
             </button>
-            <Link href="/t/DEMO" className="rounded-lg border border-rule px-4 py-2 text-[14px] text-muted hover:text-ink">
+            <Link href="/t/DEMO" className="rounded-[3px] border border-rule px-4 py-2 text-[14px] text-muted hover:text-ink">
               Open the sample company
             </Link>
           </div>
@@ -124,7 +130,7 @@ function Loading({ ticker }: { ticker: string }) {
   return (
     <main className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6">
       <p className="text-[15px] text-muted">Reading {ticker}&apos;s filings and market data…</p>
-      <div className="mt-6 h-[124px] animate-pulse rounded-xl bg-surface" />
+      <div className="mt-6 h-[124px] animate-pulse rounded-[3px] bg-surface" />
     </main>
   );
 }
@@ -137,6 +143,18 @@ function Ready() {
   const scenarios = useModel((s) => s.scenarios);
   const reset = useModel((s) => s.reset);
   const [tab, setTab] = useState<TabId>("model");
+
+  // Terminal-style shortcuts: number keys switch views when you're not typing.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || el.closest("input, textarea, select, [contenteditable]")) return;
+      const i = Number(e.key) - 1;
+      if (i >= 0 && i < TABS.length) setTab(TABS[i].id);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Heavy views (simulation, grids) follow the deferred value so dragging stays smooth.
   const a = useDeferredValue(liveA);
@@ -155,17 +173,34 @@ function Ready() {
       {/* Identity + headline value */}
       <section className="grid gap-6 pt-8 lg:grid-cols-[1fr_auto] lg:items-end">
         <div className="min-w-0">
-          <p className="text-[13px] text-muted">
-            {c.ticker}
-            {c.exchange ? ` on ${c.exchange}` : ""}
-            {c.industry ? `, ${c.industry}` : ""}
-          </p>
-          <h1 className="mt-1 truncate text-[clamp(28px,4vw,44px)] font-semibold leading-[1.05] tracking-[-0.02em]">{c.name}</h1>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h1 className="text-[clamp(22px,3.2vw,36px)] font-bold leading-[1.1] tracking-[-0.02em]">{c.name}</h1>
+            {[c.exchange, c.industry].filter(Boolean).map((t) => (
+              <span key={t} className="rounded-[3px] border border-rule bg-sunk px-2 py-0.5 text-[11px] text-muted">
+                {t}
+              </span>
+            ))}
+          </div>
+          <dl className="num mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[12px]">
+            {[
+              ["TICKER", c.ticker],
+              ["PX", price != null ? price.toFixed(2) : "–"],
+              ["MCAP", big(price ? price * liveA.sharesOutstanding : c.marketCap, c.currency)],
+              ["BETA", c.beta != null ? c.beta.toFixed(2) : "–"],
+              ["UST10Y", pct(c.riskFreeRate, 2)],
+              ["HIST", `${c.historicals.length}Y`],
+            ].map(([k, val]) => (
+              <div key={k} className="flex gap-1.5">
+                <dt className="text-brass">{k}</dt>
+                <dd className="text-ink">{val}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
         <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
           <div>
             <div className="text-[12.5px] text-muted">Intrinsic value per share</div>
-            <div className="num text-[clamp(40px,5.5vw,64px)] font-semibold leading-none tracking-[-0.03em] text-brass">
+            <div className="num text-[clamp(36px,5vw,56px)] font-bold leading-none tracking-[-0.04em] text-brass">
               {money(v.valuePerShare, c.currency)}
             </div>
           </div>
@@ -181,7 +216,7 @@ function Ready() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-xl border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8">
+      <section className="mt-6 rounded-[3px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8">
         <ValueRail
           currency={c.currency}
           price={price}
@@ -230,17 +265,26 @@ function Ready() {
 
         <div className="min-w-0">
           <nav role="tablist" aria-label="Analysis views" className="mb-5 flex gap-1 overflow-x-auto border-b border-rule">
-            {TABS.map((t) => (
+            {TABS.map((t, i) => (
               <button
                 key={t.id}
                 role="tab"
                 aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
+                title={`Press ${i + 1}`}
                 className={clsx(
-                  "-mb-px shrink-0 border-b-2 px-3 py-2 text-[14px]",
-                  tab === t.id ? "border-brass font-semibold text-ink" : "border-transparent text-muted hover:text-ink",
+                  "-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-[13px]",
+                  tab === t.id ? "border-brass font-bold text-ink" : "border-transparent text-muted hover:text-ink",
                 )}
               >
+                <kbd
+                  className={clsx(
+                    "rounded-[2px] px-1 font-sans text-[10.5px] leading-[1.5]",
+                    tab === t.id ? "bg-brass text-[#111]" : "bg-sunk text-faint",
+                  )}
+                >
+                  {i + 1}
+                </kbd>
                 {t.label}
               </button>
             ))}

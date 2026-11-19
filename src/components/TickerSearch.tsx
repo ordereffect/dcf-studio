@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Search } from "lucide-react";
 
 interface Hit {
   ticker: string;
@@ -52,10 +51,12 @@ export function TickerSearch({ size = "sm", autoFocus }: { size?: "sm" | "lg"; a
         }}
         className={clsx(
           "flex items-center gap-3 border-rule bg-surface focus-within:border-[var(--focus)]",
-          lg ? "rounded-xl border px-5 py-4" : "rounded-lg border px-3 py-1.5",
+          lg ? "rounded-[3px] border px-5 py-4" : "rounded-[3px] border px-3 py-1.5",
         )}
       >
-        <Search className={clsx("shrink-0 text-faint", lg ? "size-6" : "size-4")} aria-hidden />
+        <span className={clsx("shrink-0 font-bold text-brass", lg ? "text-2xl" : "text-sm")} aria-hidden>
+          &gt;
+        </span>
         <input
           autoFocus={autoFocus}
           value={q}
@@ -74,7 +75,7 @@ export function TickerSearch({ size = "sm", autoFocus }: { size?: "sm" | "lg"; a
               setActive((a) => Math.max(a - 1, 0));
             } else if (e.key === "Escape") setOpen(false);
           }}
-          placeholder={lg ? "Ticker or company name" : "Value another ticker"}
+          placeholder={lg ? "ticker or company name_" : "value another ticker"}
           aria-label="Search for a ticker"
           role="combobox"
           aria-expanded={open && hits.length > 0}
@@ -86,7 +87,7 @@ export function TickerSearch({ size = "sm", autoFocus }: { size?: "sm" | "lg"; a
         <ul
           id="ticker-results"
           role="listbox"
-          className="absolute z-30 mt-1.5 w-full overflow-hidden rounded-lg border border-rule bg-surface shadow-[0_8px_30px_-12px_rgba(20,32,51,0.35)]"
+          className="absolute z-30 mt-1 w-full overflow-hidden rounded-[3px] border border-rule bg-surface"
         >
           {hits.map((h, i) => (
             <li key={h.ticker} role="option" aria-selected={i === active}>
@@ -97,7 +98,7 @@ export function TickerSearch({ size = "sm", autoFocus }: { size?: "sm" | "lg"; a
                 onMouseEnter={() => setActive(i)}
                 className={clsx("flex w-full items-baseline gap-3 px-4 py-2 text-left", i === active && "bg-sunk")}
               >
-                <span className="w-16 shrink-0 font-semibold">{h.ticker}</span>
+                <span className="w-16 shrink-0 font-bold text-brass">{h.ticker}</span>
                 <span className="truncate text-sm text-muted">{h.name}</span>
               </button>
             </li>

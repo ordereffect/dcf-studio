@@ -103,7 +103,7 @@ export function Toggle<T extends string>({
   return (
     <div className="flex items-center justify-between gap-3 py-2">
       <span className="text-[13px] text-muted">{label}</span>
-      <div role="radiogroup" aria-label={label} className="flex rounded-md border border-rule p-0.5">
+      <div role="radiogroup" aria-label={label} className="flex rounded-[3px] border border-rule p-0.5">
         {options.map((o) => (
           <button
             key={o.value}
@@ -113,7 +113,7 @@ export function Toggle<T extends string>({
             onClick={() => onChange(o.value)}
             className={clsx(
               "rounded px-2 py-0.5 text-[12px]",
-              value === o.value ? "bg-ink text-paper" : "text-muted hover:text-ink",
+              value === o.value ? "bg-brass text-[#111] font-semibold" : "text-muted hover:text-ink",
             )}
           >
             {o.label}

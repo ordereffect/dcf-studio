@@ -2,11 +2,11 @@ import clsx from "clsx";
 
 export function Panel({ title, note, children, className }: { title?: string; note?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={clsx("rounded-xl border border-rule bg-surface p-5", className)}>
+    <section className={clsx("rounded-[3px] border border-rule bg-surface p-5", className)}>
       {(title || note) && (
         <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          {title && <h2 className="text-[16px] font-semibold">{title}</h2>}
-          {note && <p className="text-[12.5px] text-muted">{note}</p>}
+          {title && <h2 className="text-[14px] font-bold">{title}</h2>}
+          {note && <p className="text-[11.5px] text-faint">{note}</p>}
         </header>
       )}
       {children}

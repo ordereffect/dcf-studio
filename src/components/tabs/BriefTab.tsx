@@ -40,7 +40,7 @@ export function BriefTab({ c, a, price }: { c: CompanyData; a: Assumptions; pric
           onChange={(e) => setNotes(e.target.value)}
           rows={14}
           placeholder="What do you believe that the market doesn't? Moat, management, catalysts, what would make you wrong…"
-          className="w-full resize-y rounded-lg border border-rule bg-sunk p-3 text-[14px] leading-relaxed outline-none placeholder:text-faint focus-visible:border-brass"
+          className="w-full resize-y rounded-[3px] border border-rule bg-sunk p-3 text-[14px] leading-relaxed outline-none placeholder:text-faint focus-visible:border-brass"
         />
       </Panel>
       <Panel
@@ -50,20 +50,20 @@ export function BriefTab({ c, a, price }: { c: CompanyData; a: Assumptions; pric
         <div className="mb-3 flex gap-2">
           <button
             onClick={copy}
-            className="inline-flex items-center gap-2 rounded-lg bg-ink px-4 py-2 text-[13.5px] font-medium text-paper hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-[3px] bg-brass px-4 py-2 text-[13px] font-semibold text-[#111] hover:opacity-90"
           >
             {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
             {copied ? "Copied" : "Copy brief"}
           </button>
           <button
             onClick={download}
-            className="inline-flex items-center gap-2 rounded-lg border border-rule px-4 py-2 text-[13.5px] text-muted hover:text-ink"
+            className="inline-flex items-center gap-2 rounded-[3px] border border-rule px-4 py-2 text-[13.5px] text-muted hover:text-ink"
           >
             <Download className="size-4" aria-hidden />
             Download .md
           </button>
         </div>
-        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-lg bg-sunk p-4 text-[12.5px] leading-relaxed text-muted">{brief}</pre>
+        <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap rounded-[3px] bg-sunk p-4 text-[12.5px] leading-relaxed text-muted">{brief}</pre>
       </Panel>
     </div>
   );

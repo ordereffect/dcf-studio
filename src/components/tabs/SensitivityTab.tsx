@@ -50,7 +50,7 @@ export function SensitivityTab({ a, currency, price }: { a: Assumptions; currenc
             role="tab"
             aria-selected={i === preset}
             onClick={() => setPreset(i)}
-            className={`rounded-full border px-3 py-1 text-[12.5px] ${i === preset ? "border-ink bg-ink text-paper" : "border-rule text-muted hover:text-ink"}`}
+            className={`rounded-[3px] border px-3 py-1 text-[12.5px] ${i === preset ? "border-brass bg-brass font-semibold text-[#111]" : "border-rule text-muted hover:text-ink"}`}
           >
             {x.title}
           </button>
