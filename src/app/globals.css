@@ -1,26 +1,147 @@
 @import "tailwindcss";
+@import "@fontsource-variable/hanken-grotesk";
 
+/* Palette: cool mineral paper, navy ink, brass for "our" value, teal / brick for up / down. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #edf0f3;
+  --surface: #ffffff;
+  --sunk: #f5f7f9;
+  --ink: #142033;
+  --muted: #5a6a80;
+  --faint: #8d9aad;
+  --rule: #d3dae3;
+  --brass: #a8741f;
+  --brass-soft: #f3e6cf;
+  --up: #23795a;
+  --up-soft: #dcefe6;
+  --down: #b0413a;
+  --down-soft: #f6dedb;
+  --focus: #2f5fb3;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --paper: #0d1421;
+    --surface: #141d2e;
+    --sunk: #101828;
+    --ink: #e4eaf3;
+    --muted: #93a1b6;
+    --faint: #66758c;
+    --rule: #26324a;
+    --brass: #d9a54a;
+    --brass-soft: #3a2f1c;
+    --up: #4fb98a;
+    --up-soft: #173328;
+    --down: #e0736a;
+    --down-soft: #3a1f1f;
+    --focus: #7fa6ec;
+    color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+  --paper: #0d1421;
+  --surface: #141d2e;
+  --sunk: #101828;
+  --ink: #e4eaf3;
+  --muted: #93a1b6;
+  --faint: #66758c;
+  --rule: #26324a;
+  --brass: #d9a54a;
+  --brass-soft: #3a2f1c;
+  --up: #4fb98a;
+  --up-soft: #173328;
+  --down: #e0736a;
+  --down-soft: #3a1f1f;
+  --focus: #7fa6ec;
+  color-scheme: dark;
+}
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-rule: var(--rule);
+  --color-brass: var(--brass);
+  --color-brass-soft: var(--brass-soft);
+  --color-up: var(--up);
+  --color-up-soft: var(--up-soft);
+  --color-down: var(--down);
+  --color-down-soft: var(--down-soft);
+  --font-sans: "Hanken Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+}
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Range input drawn as a thin rule with a brass thumb */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  background: linear-gradient(var(--rule), var(--rule)) center / 100% 2px no-repeat;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 14px;
+  background: transparent;
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--brass);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--brass);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }
