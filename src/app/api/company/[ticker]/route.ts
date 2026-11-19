@@ -12,7 +12,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ ticker:
   try {
     const data = await getCompany(ticker);
     return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+      // Cache complete results for an hour; partial ones only briefly so a fixed data source shows up fast.
+      headers: {
+        "Cache-Control": data.historicals.length && data.price
+          ? "public, s-maxage=3600, stale-while-revalidate=86400"
+          : "public, s-maxage=60",
+      },
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Lookup failed" }, { status: 404 });

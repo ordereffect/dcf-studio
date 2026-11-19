@@ -1,7 +1,7 @@
 import "server-only";
 import type { CompanyData } from "@/lib/dcf/types";
 import { fetchEdgar } from "./edgar";
-import { fetchMarket, fetchRiskFree } from "./market";
+import { fetchMarket, fetchRiskFree, fetchYahooFundamentals } from "./market";
 
 export async function getCompany(ticker: string): Promise<CompanyData> {
   const t = ticker.trim().toUpperCase();
@@ -11,9 +11,32 @@ export async function getCompany(ticker: string): Promise<CompanyData> {
   const [edgar, market, rf] = await Promise.allSettled([fetchEdgar(t), fetchMarket(t), fetchRiskFree()]);
 
   const e = edgar.status === "fulfilled" ? edgar.value : null;
-  if (edgar.status === "rejected") warnings.push(`SEC filings unavailable: ${String(edgar.reason?.message ?? edgar.reason)}`);
-  else if (!e) warnings.push("No SEC filings found for this ticker. v1 covers US-listed companies; enter financials by hand for others.");
-  else sources.push("SEC EDGAR (10-K / 20-F XBRL)");
+  const secError = edgar.status === "rejected" ? String(edgar.reason?.message ?? edgar.reason) : null;
+  if (e?.historicals.length) sources.push("SEC EDGAR (10-K / 20-F XBRL)");
+
+  // Backup: Yahoo annual financials when SEC is unavailable or has no filings for this ticker.
+  let historicals = e?.historicals ?? [];
+  if (!historicals.length) {
+    try {
+      historicals = await fetchYahooFundamentals(t);
+    } catch {
+      historicals = [];
+    }
+    if (historicals.length) {
+      sources.push("Yahoo Finance (annual financials)");
+      warnings.push(
+        secError
+          ? `SEC filings unavailable (${secError}${/403/.test(secError) ? "; set SEC_USER_AGENT with a contact email in Vercel" : ""}), so history comes from Yahoo and covers fewer years.`
+          : "No SEC filings for this ticker, so history comes from Yahoo Finance and covers fewer years.",
+      );
+    } else {
+      warnings.push(
+        secError
+          ? `SEC filings unavailable: ${secError}. Enter financials by hand.`
+          : "No financial history found for this ticker. Enter financials by hand.",
+      );
+    }
+  }
 
   const m = market.status === "fulfilled" ? market.value : null;
   if (market.status === "rejected") warnings.push("Live price unavailable from Yahoo Finance. Enter the price by hand.");
@@ -40,7 +63,7 @@ export async function getCompany(ticker: string): Promise<CompanyData> {
     sharesOutstanding: m?.sharesOutstanding ?? e?.sharesOutstanding ?? null,
     marketCap: m?.marketCap ?? null,
     beta: m?.beta ?? null,
-    historicals: e?.historicals ?? [],
+    historicals,
     riskFreeRate: r,
     sources,
     warnings,

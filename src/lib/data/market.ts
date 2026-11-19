@@ -1,5 +1,6 @@
 import "server-only";
 import YahooFinance from "yahoo-finance2";
+import type { HistoricalYear } from "@/lib/dcf/types";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -44,4 +45,51 @@ export async function fetchRiskFree(): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+type Row = Record<string, unknown>;
+const pickNum = (r: Row, key: string): number | null => {
+  const cap = key[0].toUpperCase() + key.slice(1);
+  for (const k of [key, `annual${cap}`]) {
+    const v = r[k];
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+  }
+  return null;
+};
+
+/**
+ * Annual financials from Yahoo Finance (usually the last 4–5 fiscal years). Used as a backup
+ * when SEC EDGAR is unavailable, and for non-US tickers.
+ */
+export async function fetchYahooFundamentals(ticker: string): Promise<HistoricalYear[]> {
+  const symbol = ticker.toUpperCase().replace(".", "-");
+  const rows = (await yf.fundamentalsTimeSeries(
+    symbol,
+    { period1: "2010-01-01", type: "annual", module: "all" },
+    { validateResult: false },
+  )) as unknown as Row[];
+  return rows
+    .map((r) => {
+      const d = r.date instanceof Date ? r.date : new Date(String(r.date));
+      const capex = pickNum(r, "capitalExpenditure");
+      return {
+        fiscalYear: d.getUTCFullYear(),
+        periodEnd: d.toISOString().slice(0, 10),
+        revenue: pickNum(r, "totalRevenue"),
+        operatingIncome: pickNum(r, "operatingIncome") ?? pickNum(r, "totalOperatingIncomeAsReported"),
+        pretaxIncome: pickNum(r, "pretaxIncome"),
+        incomeTax: pickNum(r, "taxProvision"),
+        netIncome: pickNum(r, "netIncome") ?? pickNum(r, "netIncomeFromContinuingOperationNetMinorityInterest"),
+        depreciation: pickNum(r, "reconciledDepreciation"),
+        capex: capex == null ? null : Math.abs(capex),
+        sbc: pickNum(r, "stockBasedCompensation"),
+        cash: pickNum(r, "cashCashEquivalentsAndShortTermInvestments") ?? pickNum(r, "cashAndCashEquivalents"),
+        totalDebt: pickNum(r, "totalDebt"), // Yahoo's total debt already includes lease obligations
+        leaseLiabilities: null,
+        equity: pickNum(r, "stockholdersEquity"),
+        minorityInterest: pickNum(r, "minorityInterest"),
+      };
+    })
+    .filter((y) => y.revenue != null && y.revenue > 0)
+    .sort((a, b) => (a.periodEnd < b.periodEnd ? -1 : 1));
 }

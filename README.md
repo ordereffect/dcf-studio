@@ -31,7 +31,7 @@ Open `/t/DEMO` for a fictional sample company that works offline.
 1. Sign in to the Vercel account you want to use at [vercel.com](https://vercel.com).
 2. **Add New → Project**, then **Import** this GitHub repository (grant Vercel access to it if asked).
 3. Leave the framework preset as **Next.js** and all build settings at their defaults.
-4. Optional but recommended: under **Environment Variables** add `SEC_USER_AGENT` = `DCF Studio your-email@example.com`. The SEC asks automated clients to identify themselves with a contact address.
+4. Under **Environment Variables** add `SEC_USER_AGENT` = `DCF Studio your-email@example.com`. The SEC refuses requests (HTTP 403) from clients that do not identify themselves with a contact address. Without it, history falls back to Yahoo Finance (fewer years).
 5. Click **Deploy**. Every push to `main` redeploys automatically.
 
 ## Data sources
