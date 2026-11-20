@@ -334,7 +334,7 @@ export const LESSONS = {
 
 export type LessonId = keyof typeof LESSONS;
 
-export type TabId = "model" | "scenarios" | "sensitivity" | "implied" | "history" | "brief";
+export type TabId = "model" | "scenarios" | "sensitivity" | "implied" | "history" | "ownership" | "brief";
 
 export interface TourStep {
   target?: string; // data-tour id; omitted for a centred card

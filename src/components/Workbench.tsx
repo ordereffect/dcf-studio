@@ -27,6 +27,7 @@ import { ScenariosTab } from "./tabs/ScenariosTab";
 import { SensitivityTab } from "./tabs/SensitivityTab";
 import { ImpliedTab } from "./tabs/ImpliedTab";
 import { HistoryTab } from "./tabs/HistoryTab";
+import { OwnershipTab } from "./tabs/OwnershipTab";
 import { BriefTab } from "./tabs/BriefTab";
 
 const TABS = [
@@ -35,6 +36,7 @@ const TABS = [
   { id: "sensitivity", label: "Sensitivity" },
   { id: "implied", label: "Market-implied" },
   { id: "history", label: "History" },
+  { id: "ownership", label: "Ownership" },
   { id: "brief", label: "Brief for Claude" },
 ] as const;
 
@@ -360,6 +362,7 @@ function Ready() {
           {tab === "sensitivity" && <SensitivityTab a={a} currency={c.currency} price={price} />}
           {tab === "implied" && <ImpliedTab a={a} c={c} price={price} base={v.valuePerShare} />}
           {tab === "history" && <HistoryTab c={c} />}
+          {tab === "ownership" && <OwnershipTab ticker={c.ticker} sharesOutstanding={liveA.sharesOutstanding} />}
           {tab === "brief" && <BriefTab c={c} a={liveA} price={price} />}
         </div>
       </div>
