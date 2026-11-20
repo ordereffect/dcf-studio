@@ -8,7 +8,8 @@ import type { HistoricalYear } from "@/lib/dcf/types";
  */
 const UA = process.env.SEC_USER_AGENT || "DCF Studio personal-research";
 
-const headers = { "User-Agent": UA, Accept: "application/json" };
+export const secHeaders = { "User-Agent": UA, Accept: "application/json" };
+const headers = secHeaders;
 
 interface TickerEntry {
   cik_str: number;
