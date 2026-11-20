@@ -2,13 +2,17 @@ import Link from "next/link";
 import { TickerSearch } from "@/components/TickerSearch";
 import { RecentModels } from "@/components/RecentModels";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { WatchlistLink } from "@/components/FollowButton";
 
 export default function Home() {
   return (
     <>
       <header className="flex items-center justify-between px-4 py-3 sm:px-6">
         <span className="text-[13px] text-brass">DCF Studio</span>
-        <ThemeToggle />
+        <div className="flex items-center gap-4">
+          <WatchlistLink />
+          <ThemeToggle />
+        </div>
       </header>
       <main className="mx-auto max-w-[680px] px-4 pb-24 pt-[12vh] sm:px-6">
         <h1 className="text-[clamp(26px,4.2vw,40px)] font-bold leading-[1.15] tracking-[-0.03em]">

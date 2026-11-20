@@ -18,6 +18,7 @@ import { Tour, TourButton } from "./Tour";
 import { ValueRail } from "./ValueRail";
 import { AssumptionsPanel } from "./AssumptionsPanel";
 import { Stat } from "./ui";
+import { FollowButton, WatchlistLink } from "./FollowButton";
 import { ModelTab } from "./tabs/ModelTab";
 import { ScenariosTab } from "./tabs/ScenariosTab";
 import { SensitivityTab } from "./tabs/SensitivityTab";
@@ -100,6 +101,7 @@ export function Workbench({ ticker }: { ticker: string }) {
           <div className="ml-auto w-full max-w-xs">
             <TickerSearch />
           </div>
+          <WatchlistLink />
           {status === "ready" && <TourButton />}
           <ThemeToggle />
         </div>
@@ -193,6 +195,7 @@ function Ready() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-[clamp(22px,3.2vw,36px)] font-bold leading-[1.1] tracking-[-0.02em]">{c.name}</h1>
+            <FollowButton ticker={c.ticker} />
             {[c.exchange, c.industry].filter(Boolean).map((t) => (
               <span key={t} className="rounded-[3px] border border-rule bg-sunk px-2 py-0.5 text-[11px] text-muted">
                 {t}

@@ -45,6 +45,16 @@ export function listSavedModels(): SavedModel[] {
   }
 }
 
+/** The model you saved for a ticker in this browser, if any. */
+export function loadSavedModel(ticker: string): SavedModel | null {
+  try {
+    const raw = localStorage.getItem(KEY(ticker));
+    return raw ? (JSON.parse(raw) as SavedModel) : null;
+  } catch {
+    return null;
+  }
+}
+
 function persist(s: ModelState) {
   if (!s.company || !s.assumptions) return;
   try {
