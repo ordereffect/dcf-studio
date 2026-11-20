@@ -5,7 +5,8 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.min(1, Math
 export function computeWacc(a: Assumptions): WaccBreakdown {
   const costOfEquity = a.riskFreeRate + a.beta * a.equityRiskPremium;
   const afterTaxCostOfDebt = a.preTaxCostOfDebt * (1 - a.marginalTaxRate);
-  const debtWeight = Math.min(0.95, Math.max(0, a.debtToCapital));
+  // Equity approach: cash flows belong to shareholders only, so they are discounted at the cost of equity.
+  const debtWeight = a.approach === "equity" ? 0 : Math.min(0.95, Math.max(0, a.debtToCapital));
   const equityWeight = 1 - debtWeight;
   const computed = equityWeight * costOfEquity + debtWeight * afterTaxCostOfDebt;
   return {
@@ -38,6 +39,7 @@ export function taxForYear(a: Assumptions, t: number): number {
 
 export function runDcf(a: Assumptions, firstFiscalYear = new Date().getFullYear()): Valuation {
   const warnings: string[] = [];
+  const equityApproach = a.approach === "equity";
   const wacc = computeWacc(a);
   const r = wacc.wacc;
   const n = Math.max(1, Math.round(a.forecastYears));
@@ -46,7 +48,11 @@ export function runDcf(a: Assumptions, firstFiscalYear = new Date().getFullYear(
   let prevRevenue = a.baseRevenue;
   // Starting invested capital is approximated from the sales-to-capital ratio so ROIC is
   // internally consistent with the reinvestment assumption.
-  let investedCapital = a.baseRevenue / Math.max(0.01, a.salesToCapital);
+  // In the equity approach, start from reported book equity when we have it, so ROE is real.
+  let investedCapital =
+    equityApproach && a.bookEquity != null && a.bookEquity > 0
+      ? a.bookEquity
+      : a.baseRevenue / Math.max(0.01, a.salesToCapital);
 
   for (let t = 1; t <= n; t++) {
     const growth = growthForYear(a, t);
@@ -88,7 +94,8 @@ export function runDcf(a: Assumptions, firstFiscalYear = new Date().getFullYear(
 
   let terminalValue: number;
   if (a.terminalMethod === "exitMultiple") {
-    terminalValue = last.ebit * a.exitMultiple;
+    // Firm: EV / EBIT. Equity approach: P / E on final-year net income.
+    terminalValue = (equityApproach ? last.nopat : last.ebit) * a.exitMultiple;
   } else {
     if (r <= g) {
       warnings.push("Terminal growth is at or above WACC, so the perpetuity value is undefined. Lower growth or raise WACC.");
@@ -103,20 +110,37 @@ export function runDcf(a: Assumptions, firstFiscalYear = new Date().getFullYear(
   const terminalPv = terminalValue / Math.pow(1 + r, tvTiming);
 
   const sumPvFcff = years.reduce((s, y) => s + y.pvFcff, 0);
-  const enterpriseValue = sumPvFcff + terminalPv;
-  const equityValue = enterpriseValue + a.cash - a.debt - a.minorityInterest + a.otherAdjustments;
+  const totalPv = sumPvFcff + terminalPv;
+  // For a bank or broker, cash and debt are operating items (deposits, customer balances,
+  // funding), already reflected in the equity cash flows, so there is no cash/debt bridge.
+  const enterpriseValue = equityApproach ? NaN : totalPv;
+  const equityValue = equityApproach
+    ? totalPv - a.minorityInterest + a.otherAdjustments
+    : totalPv + a.cash - a.debt - a.minorityInterest + a.otherAdjustments;
   const valuePerShare = a.sharesOutstanding > 0 ? equityValue / a.sharesOutstanding : NaN;
 
   // Cross-checks between the two terminal methods
-  const impliedExitMultiple = last.ebit !== 0 ? terminalValue / last.ebit : NaN;
+  const exitBase = equityApproach ? last.nopat : last.ebit;
+  const impliedExitMultiple = exitBase !== 0 ? terminalValue / exitBase : NaN;
   const impliedPerpetuityGrowth =
     terminalValue > 0 ? solveImpliedGrowth(terminalValue, last, a, r) : NaN;
 
-  const terminalShare = enterpriseValue !== 0 ? terminalPv / enterpriseValue : NaN;
+  // A share of a negative total is meaningless (e.g. -68%), so report it only when the total is positive.
+  const terminalShare = totalPv > 0 ? terminalPv / totalPv : NaN;
+  const rateName = equityApproach ? "cost of equity" : "WACC";
   if (terminalShare > 0.8) warnings.push("Over 80% of value sits in the terminal value. The answer leans heavily on the long run.");
-  if (a.terminalRoic < r && g > 0) warnings.push("Terminal ROIC is below WACC, so growth destroys value in perpetuity.");
+  if (a.terminalRoic < r && g > 0)
+    warnings.push(`Terminal ${equityApproach ? "ROE" : "ROIC"} is below the ${rateName}, so growth destroys value in perpetuity.`);
   if (g > a.riskFreeRate) warnings.push("Terminal growth exceeds the risk-free rate, a common proxy for long-run nominal GDP.");
-  if (equityValue < 0) warnings.push("Equity value is negative: debt and other claims exceed enterprise value.");
+  if (totalPv < 0) {
+    const negYears = years.filter((y) => y.fcff < 0).length;
+    warnings.push(
+      `The cash flows are worth less than zero: in ${negYears} of ${n} forecast years, funding growth costs more than the business earns. ` +
+        `Check the ${equityApproach ? "pre-tax margin" : "operating margin"}, revenue growth and ${equityApproach ? "sales to equity" : "sales to capital"}.`,
+    );
+  } else if (equityValue < 0) {
+    warnings.push("Equity value is negative: debt and other claims exceed enterprise value.");
+  }
 
   return {
     wacc,

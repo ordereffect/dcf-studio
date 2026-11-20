@@ -3,6 +3,7 @@ import { reverseDcf, scenarioValues, tornado } from "@/lib/dcf/analysis";
 import { historicalMetrics } from "@/lib/dcf/defaults";
 import type { Assumptions, CompanyData, Scenario } from "@/lib/dcf/types";
 import { big, money, mult, pct } from "@/lib/format";
+import { terms } from "@/lib/learn";
 
 /**
  * A structured markdown brief to paste into Claude. It carries the numbers and the open
@@ -17,6 +18,7 @@ export function buildBrief(c: CompanyData, a: Assumptions, scenarios: Scenario[]
   const upside = price ? v.valuePerShare / price - 1 : NaN;
   const impliedGrowth = price ? reverseDcf(a, price, "revenueGrowth") : NaN;
   const impliedMargin = price ? reverseDcf(a, price, "targetMargin") : NaN;
+  const T = terms(a.approach);
 
   const lines = [
     `# Valuation brief: ${c.name} (${c.ticker})`,
@@ -31,31 +33,43 @@ export function buildBrief(c: CompanyData, a: Assumptions, scenarios: Scenario[]
     c.description ? `- Business: ${c.description.slice(0, 600)}` : "",
     "",
     `## Recent history`,
-    `| FY | Revenue | Growth | Op. margin | Tax rate | ROIC |`,
-    `|---|---|---|---|---|---|`,
-    ...hist.map((h) => `| ${h.fiscalYear} | ${big(h.revenue, ccy)} | ${pct(h.growth)} | ${pct(h.operatingMargin)} | ${pct(h.taxRate)} | ${pct(h.roic)} |`),
+    `| FY | Revenue | Growth | Op. margin | Pre-tax margin | Tax rate | ROIC | ROE |`,
+    `|---|---|---|---|---|---|---|---|`,
+    ...hist.map(
+      (h) =>
+        `| ${h.fiscalYear} | ${big(h.revenue, ccy)} | ${pct(h.growth)} | ${pct(h.operatingMargin)} | ${pct(h.pretaxMargin)} | ${pct(h.taxRate)} | ${pct(h.roic)} | ${pct(h.roe)} |`,
+    ),
     "",
     `## Base-case assumptions`,
+    T.eq
+      ? `- Approach: equity (financial company). Free cash flow to equity discounted at the cost of equity; cash and debt are treated as operating, so there is no enterprise value.`
+      : `- Approach: firm. Free cash flow to the firm discounted at WACC, then cash added and debt subtracted.`,
     `- Revenue growth ${pct(a.revenueGrowth)} for ${a.highGrowthYears} years, fading to ${pct(a.terminalGrowth)} by year ${a.forecastYears}`,
-    `- Operating margin ${pct(a.currentMargin)} today → ${pct(a.targetMargin)} by year ${a.marginConvergenceYear}`,
-    `- Sales-to-capital ${a.salesToCapital.toFixed(2)} (reinvestment per $ of new revenue)`,
+    `- ${T.eq ? "Pre-tax" : "Operating"} margin ${pct(a.currentMargin)} today → ${pct(a.targetMargin)} by year ${a.marginConvergenceYear}`,
+    `- ${T.stc} ${a.salesToCapital.toFixed(2)} (${T.eq ? "new book equity" : "reinvestment"} per $ of new revenue)`,
     `- Tax ${pct(a.effectiveTaxRate)} effective → ${pct(a.marginalTaxRate)} marginal`,
-    `- WACC ${pct(v.wacc.wacc, 2)} (cost of equity ${pct(v.wacc.costOfEquity, 2)} = rf ${pct(a.riskFreeRate, 2)} + β ${a.beta.toFixed(2)} × ERP ${pct(a.equityRiskPremium, 2)}; debt weight ${pct(v.wacc.debtWeight, 0)})`,
+    T.eq
+      ? `- Cost of equity ${pct(v.wacc.wacc, 2)} (rf ${pct(a.riskFreeRate, 2)} + β ${a.beta.toFixed(2)} × ERP ${pct(a.equityRiskPremium, 2)})`
+      : `- WACC ${pct(v.wacc.wacc, 2)} (cost of equity ${pct(v.wacc.costOfEquity, 2)} = rf ${pct(a.riskFreeRate, 2)} + β ${a.beta.toFixed(2)} × ERP ${pct(a.equityRiskPremium, 2)}; debt weight ${pct(v.wacc.debtWeight, 0)})`,
     a.terminalMethod === "perpetuity"
-      ? `- Terminal: perpetuity growth ${pct(a.terminalGrowth)}, return on new capital ${pct(a.terminalRoic)} (implied exit ${mult(v.terminal.impliedExitMultiple)} EBIT)`
-      : `- Terminal: exit at ${mult(a.exitMultiple)} EBIT (implied perpetuity growth ${pct(v.terminal.impliedPerpetuityGrowth)})`,
+      ? `- Terminal: perpetuity growth ${pct(a.terminalGrowth)}, ${T.terminalReturn.toLowerCase()} ${pct(a.terminalRoic)} (implied exit ${mult(v.terminal.impliedExitMultiple)} ${T.eq ? "net income" : "EBIT"})`
+      : `- Terminal: exit at ${mult(a.exitMultiple)} ${T.eq ? "net income" : "EBIT"} (implied perpetuity growth ${pct(v.terminal.impliedPerpetuityGrowth)})`,
     "",
     `## Output`,
-    `- Enterprise value ${big(v.enterpriseValue, ccy)}; equity value ${big(v.equityValue, ccy)} (cash ${big(a.cash, ccy)}, debt ${big(a.debt, ccy)})`,
-    `- Terminal value is ${pct(v.terminalShare, 0)} of enterprise value`,
-    `- Year ${a.forecastYears}: revenue ${big(v.years.at(-1)!.revenue, ccy)}, ROIC on invested capital ${pct(v.years.at(-1)!.roic)}`,
+    T.eq
+      ? `- Equity value ${big(v.equityValue, ccy)} (book equity ${big(a.bookEquity ?? c.historicals.at(-1)?.equity, ccy)})`
+      : `- Enterprise value ${big(v.enterpriseValue, ccy)}; equity value ${big(v.equityValue, ccy)} (cash ${big(a.cash, ccy)}, debt ${big(a.debt, ccy)})`,
+    Number.isFinite(v.terminalShare)
+      ? `- Terminal value is ${pct(v.terminalShare, 0)} of total present value`
+      : `- Total present value is not positive, so the terminal share is not meaningful`,
+    `- Year ${a.forecastYears}: revenue ${big(v.years.at(-1)!.revenue, ccy)}, ${T.eq ? "ROE" : "ROIC on invested capital"} ${pct(v.years.at(-1)!.roic)}`,
     "",
     `## Scenarios`,
     ...sv.rows.map((r) => `- ${r.scenario.label} (${pct(r.scenario.probability, 0)}): ${money(r.value, ccy)} — ${describeOverrides(r.scenario, a)}`),
     "",
     `## What the market is pricing in (reverse DCF)`,
     `- Holding everything else, the price implies revenue growth of ${pct(impliedGrowth)} (model: ${pct(a.revenueGrowth)})`,
-    `- or a target operating margin of ${pct(impliedMargin)} (model: ${pct(a.targetMargin)})`,
+    `- or a target ${T.margin} of ${pct(impliedMargin)} (model: ${pct(a.targetMargin)})`,
     "",
     `## Biggest value drivers`,
     ...tor.slice(0, 4).map((t) => `- ${t.label}: ${money(t.low, ccy)} (${t.lowLabel}) to ${money(t.high, ccy)} (${t.highLabel})`),
@@ -75,6 +89,6 @@ function describeOverrides(s: Scenario, a: Assumptions) {
   if (k.targetMargin) parts.push(`margin ${pts(k.targetMargin)}`);
   if (k.salesToCapital !== 1) parts.push(`sales/capital ×${k.salesToCapital.toFixed(2)}`);
   if (k.terminalGrowth) parts.push(`terminal g ${pts(k.terminalGrowth)}`);
-  if (k.wacc) parts.push(`WACC ${pts(k.wacc)}`);
+  if (k.wacc) parts.push(`${terms(a.approach).rate} ${pts(k.wacc)}`);
   return parts.length ? parts.join(", ") : `base case (growth ${pct(a.revenueGrowth)}, margin ${pct(a.targetMargin)})`;
 }

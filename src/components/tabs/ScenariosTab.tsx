@@ -1,4 +1,5 @@
 "use client";
+import { terms } from "@/lib/learn";
 import clsx from "clsx";
 import { Panel } from "../ui";
 import { Field } from "../Field";
@@ -35,7 +36,7 @@ export function ScenariosTab({ a, currency, price }: { a: Assumptions; currency:
                 </div>
                 <div className="num mt-1 text-[28px] font-semibold leading-none">{money(value, currency)}</div>
                 <p className="num mt-2 text-[12px] text-muted">
-                  Growth {pct(sa.revenueGrowth)} · margin {pct(sa.targetMargin)} · WACC {pct(w, 1)}
+                  Growth {pct(sa.revenueGrowth)} · margin {pct(sa.targetMargin)} · {terms(a.approach).rate} {pct(w, 1)}
                 </p>
                 <div className="mt-3 border-t border-rule pt-2">
                   <Field
@@ -53,7 +54,7 @@ export function ScenariosTab({ a, currency, price }: { a: Assumptions; currency:
                       <Field label="Growth shift" unit="pct" min={-0.2} max={0.2} step={0.005} value={s.shifts.revenueGrowth} onChange={(v) => setShift(s.id, "revenueGrowth", v)} />
                       <Field label="Margin shift" unit="pct" min={-0.2} max={0.2} step={0.005} value={s.shifts.targetMargin} onChange={(v) => setShift(s.id, "targetMargin", v)} />
                       <Field label="Sales to capital ×" unit="x" min={0.5} max={1.5} step={0.05} value={s.shifts.salesToCapital} onChange={(v) => setShift(s.id, "salesToCapital", v)} />
-                      <Field label="WACC shift" unit="pct" decimals={2} min={-0.03} max={0.03} step={0.0025} value={s.shifts.wacc} onChange={(v) => setShift(s.id, "wacc", v)} />
+                      <Field label={`${terms(a.approach).rate} shift`} unit="pct" decimals={2} min={-0.03} max={0.03} step={0.0025} value={s.shifts.wacc} onChange={(v) => setShift(s.id, "wacc", v)} />
                       <Field label="Terminal growth shift" unit="pct" decimals={2} min={-0.02} max={0.02} step={0.0025} value={s.shifts.terminalGrowth} onChange={(v) => setShift(s.id, "terminalGrowth", v)} />
                     </>
                   )}

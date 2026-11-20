@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { defaultScenarios } from "@/lib/dcf/analysis";
 import { deriveAssumptions } from "@/lib/dcf/defaults";
-import type { Assumptions, CompanyData, Scenario, ScenarioShifts } from "@/lib/dcf/types";
+import type { Approach, Assumptions, CompanyData, Scenario, ScenarioShifts } from "@/lib/dcf/types";
 import type { TabId } from "@/lib/learn";
 
 export interface SavedModel {
@@ -24,6 +24,7 @@ interface ModelState {
   notes: string;
   load: (c: CompanyData) => void;
   set: (patch: Partial<Assumptions>) => void;
+  setApproach: (approach: Approach) => void;
   setScenario: (id: Scenario["id"], patch: Partial<Scenario>) => void;
   setShift: (id: Scenario["id"], key: keyof ScenarioShifts, value: number) => void;
   setPrice: (p: number | null) => void;
@@ -70,13 +71,19 @@ export const useModel = create<ModelState>((set, get) => ({
   price: null,
   notes: "",
   load: (c) => {
-    const defaults = deriveAssumptions(c);
     let saved: SavedModel | null = null;
     try {
       const raw = localStorage.getItem(KEY(c.ticker));
       saved = raw ? (JSON.parse(raw) as SavedModel) : null;
     } catch {}
-    const assumptions = saved ? { ...defaults, ...saved.assumptions } : defaults;
+    const auto = deriveAssumptions(c);
+    // Models saved before the equity approach existed have no `approach`. If this company now
+    // defaults to the equity approach, their margins and reinvestment mean something else, so
+    // start the assumptions fresh (notes and scenarios are kept).
+    const savedA = saved?.assumptions;
+    const usable = savedA && (savedA.approach != null || auto.approach === "firm") ? savedA : null;
+    const defaults = usable?.approach && usable.approach !== auto.approach ? deriveAssumptions(c, usable.approach) : auto;
+    const assumptions = usable ? { ...defaults, ...usable } : defaults;
     set({
       company: c,
       defaults,
@@ -91,6 +98,27 @@ export const useModel = create<ModelState>((set, get) => ({
     const a = get().assumptions;
     if (!a) return;
     set({ assumptions: { ...a, ...patch } });
+    persist(get());
+  },
+  setApproach: (approach) => {
+    const { company, assumptions: a } = get();
+    if (!company || !a || a.approach === approach) return;
+    // Margins, reinvestment and terminal inputs mean different things in each approach, so
+    // take fresh defaults for those and keep everything else the user has set.
+    const d = deriveAssumptions(company, approach);
+    set({
+      defaults: d,
+      assumptions: {
+        ...a,
+        approach,
+        currentMargin: d.currentMargin,
+        targetMargin: d.targetMargin,
+        salesToCapital: d.salesToCapital,
+        terminalRoic: d.terminalRoic,
+        exitMultiple: d.exitMultiple,
+        waccOverride: null,
+      },
+    });
     persist(get());
   },
   setScenario: (id, patch) => {
@@ -112,12 +140,13 @@ export const useModel = create<ModelState>((set, get) => ({
     persist(get());
   },
   reset: () => {
-    const { company, defaults } = get();
-    if (!company || !defaults) return;
+    const { company } = get();
+    if (!company) return;
     try {
       localStorage.removeItem(KEY(company.ticker));
     } catch {}
-    set({ assumptions: defaults, scenarios: defaultScenarios(), price: company.price, notes: "" });
+    const defaults = deriveAssumptions(company);
+    set({ defaults, assumptions: defaults, scenarios: defaultScenarios(), price: company.price, notes: "" });
   },
 }));
 

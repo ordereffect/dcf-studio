@@ -23,6 +23,8 @@ export function HistoryTab({ c }: { c: CompanyData }) {
     { label: "Growth", get: (i) => pct(m[i].growth), sub: true },
     { label: "Operating income", get: (i) => mm(h[i].operatingIncome) },
     { label: "Operating margin", get: (i) => pct(m[i].operatingMargin), sub: true },
+    { label: "Pre-tax income", get: (i) => mm(h[i].pretaxIncome) },
+    { label: "Pre-tax margin", get: (i) => pct(m[i].pretaxMargin), sub: true },
     { label: "Effective tax rate", get: (i) => pct(m[i].taxRate), sub: true },
     { label: "Net income", get: (i) => mm(h[i].netIncome) },
     { label: "D&A", get: (i) => mm(h[i].depreciation) },
@@ -34,6 +36,7 @@ export function HistoryTab({ c }: { c: CompanyData }) {
     { label: "Lease liabilities", get: (i) => mm(h[i].leaseLiabilities) },
     { label: "Book equity", get: (i) => mm(h[i].equity) },
     { label: "ROIC (after tax)", get: (i) => pct(m[i].roic), sub: true },
+    { label: "ROE", get: (i) => pct(m[i].roe), sub: true },
   ];
 
   return (

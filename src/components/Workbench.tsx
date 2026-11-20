@@ -8,7 +8,9 @@ import { runDcf } from "@/lib/dcf/engine";
 import { monteCarlo, scenarioValues } from "@/lib/dcf/analysis";
 import type { CompanyData } from "@/lib/dcf/types";
 import { DEMO_COMPANY } from "@/lib/demo";
-import { big, money, pct, signedPct } from "@/lib/format";
+import { big, money, mult, pct, signedPct } from "@/lib/format";
+import { terms } from "@/lib/learn";
+import { isFinancial } from "@/lib/dcf/defaults";
 import { TickerSearch } from "./TickerSearch";
 import { ThemeToggle } from "./ThemeToggle";
 import { InfoTip } from "./InfoTip";
@@ -172,7 +174,16 @@ function Ready() {
   const upside = price ? v.valuePerShare / price - 1 : NaN;
   const bear = sv.rows.find((r) => r.scenario.id === "bear")?.value ?? NaN;
   const bull = sv.rows.find((r) => r.scenario.id === "bull")?.value ?? NaN;
-  const warnings = [...c.warnings, ...v.warnings];
+  const T = terms(liveA.approach);
+  const financial = isFinancial(c);
+  const approachNote = financial
+    ? T.eq
+      ? `${c.industry} company, so it is valued on equity: cash flow to shareholders at the cost of equity. Its debt and cash are part of the business, not financing.`
+      : `${c.industry} company valued as a firm. Its debt and cash are part of the business, so the Equity approach under Assumptions usually fits better.`
+    : null;
+  const warnings = [...(approachNote ? [approachNote] : []), ...c.warnings, ...v.warnings];
+  const mcap = price ? price * liveA.sharesOutstanding : null;
+  const bookEquity = liveA.bookEquity ?? c.historicals.at(-1)?.equity ?? null;
 
   return (
     <main className="mx-auto max-w-[1440px] px-4 pb-24 sm:px-6">
@@ -241,11 +252,30 @@ function Ready() {
           p90={mc.p90}
         />
         <div className="mt-5 grid grid-cols-2 gap-4 border-t border-rule pt-4 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Enterprise value" value={big(v.enterpriseValue, c.currency)} />
-          <Stat label="Equity value" info="bridge" value={big(v.equityValue, c.currency)} sub={price ? `Market cap ${big(price * liveA.sharesOutstanding, c.currency)}` : undefined} />
-          <Stat label="WACC" info="costOfCapital" value={pct(v.wacc.wacc, 2)} sub={`Cost of equity ${pct(v.wacc.costOfEquity, 1)}`} />
-          <Stat label="Terminal value share" info="terminalShare" value={pct(v.terminalShare, 0)} tone={v.terminalShare > 0.8 ? "down" : undefined} />
-          <Stat label={`Year-${liveA.forecastYears} ROIC`} info="roicOut" value={pct(v.years.at(-1)?.roic)} sub={`vs WACC ${pct(v.wacc.wacc, 1)}`} />
+          {T.eq ? (
+            <Stat
+              label="Book equity"
+              info="bookEquity"
+              value={big(bookEquity, c.currency)}
+              sub={mcap && bookEquity && bookEquity > 0 ? `Price / book ${mult(mcap / bookEquity)}` : undefined}
+            />
+          ) : (
+            <Stat label="Enterprise value" info="enterpriseValue" value={big(v.enterpriseValue, c.currency)} />
+          )}
+          <Stat label="Equity value" info={T.equityValueLesson} value={big(v.equityValue, c.currency)} sub={mcap ? `Market cap ${big(mcap, c.currency)}` : undefined} />
+          {T.eq ? (
+            <Stat label="Cost of equity" info="costOfEquity" value={pct(v.wacc.wacc, 2)} sub="Discount rate (equity approach)" />
+          ) : (
+            <Stat label="WACC" info="costOfCapital" value={pct(v.wacc.wacc, 2)} sub={`Cost of equity ${pct(v.wacc.costOfEquity, 1)}`} />
+          )}
+          <Stat
+            label="Terminal value share"
+            info="terminalShare"
+            value={pct(v.terminalShare, 0)}
+            sub={Number.isFinite(v.terminalShare) ? undefined : "Not meaningful: value ≤ 0"}
+            tone={v.terminalShare > 0.8 ? "down" : undefined}
+          />
+          <Stat label={`Year-${liveA.forecastYears} ${T.returns}`} info={T.returnsLesson} value={pct(v.years.at(-1)?.roic)} sub={`vs ${T.rate.replace("Cost of equity", "cost of equity")} ${pct(v.wacc.wacc, 1)}`} />
           <Stat label="Weighted value" info="weighted" value={money(sv.weighted, c.currency)} sub={price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined} />
         </div>
       </section>
