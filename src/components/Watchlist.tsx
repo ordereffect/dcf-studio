@@ -12,6 +12,8 @@ import { DEMO_COMPANY } from "@/lib/demo";
 import type { WatchQuote } from "@/lib/data/quotes";
 import { money, pct, signedPct } from "@/lib/format";
 import { TickerSearch } from "./TickerSearch";
+import { useLiveQuotes } from "@/lib/useLiveQuotes";
+import type { LiveQuote } from "@/lib/data/live";
 import { ThemeToggle } from "./ThemeToggle";
 
 /** Base-case value per share: your saved model if you edited one here, else the defaults derived from filings. */
@@ -21,7 +23,26 @@ interface DcfCell {
   currency: string;
 }
 
-const REFRESH_MS = 60_000;
+// Prices stream from /api/live; the slower fundamentals (targets, P/E, dates) refresh every 5 minutes.
+const REFRESH_MS = 5 * 60_000;
+
+const blankQuote = (ticker: string): WatchQuote => ({
+  ticker,
+  name: null,
+  currency: null,
+  price: null,
+  changePct: null,
+  preMarketChangePct: null,
+  postMarketChangePct: null,
+  trailingPE: null,
+  forwardPE: null,
+  targetMeanPrice: null,
+  analystCount: null,
+  earningsDate: null,
+  dividendDate: null,
+  exDividendDate: null,
+  forwardDividendYield: null,
+});
 
 /** The offline sample has no live quote; show its fixed price so upside still reads. */
 const DEMO_QUOTE: WatchQuote = {
@@ -79,6 +100,7 @@ type ColKey =
 interface Row {
   ticker: string;
   q?: WatchQuote;
+  live?: LiveQuote;
   dcf?: DcfCell | "loading" | "error";
 }
 
@@ -132,6 +154,7 @@ function Chg({ x }: { x: number | null | undefined }) {
 
 export function Watchlist() {
   const list = useWatchlist();
+  const live = useLiveQuotes(list);
   const [quotes, setQuotes] = useState<Record<string, WatchQuote>>({});
   const [dcf, setDcf] = useState<Record<string, DcfCell | "loading" | "error">>({});
   const [loading, setLoading] = useState(false);
@@ -200,7 +223,13 @@ export function Watchlist() {
   }, [list]);
 
   const rows: Row[] = useMemo(() => {
-    const base = list.map((t) => ({ ticker: t, q: t === "DEMO" ? DEMO_QUOTE : quotes[t], dcf: dcf[t] }));
+    const base = list.map((t) => {
+      const l = live[t];
+      const q0 = t === "DEMO" ? DEMO_QUOTE : quotes[t];
+      // The live feed wins for price and day change; everything else comes from the fuller Yahoo quote.
+      const q = l?.price != null ? ({ ...(q0 ?? blankQuote(t)), price: l.price, changePct: l.changePct ?? q0?.changePct ?? null, error: undefined } as WatchQuote) : q0;
+      return { ticker: t, q, live: l, dcf: dcf[t] };
+    });
     if (!sort) return base;
     return [...base].sort((a, b) => {
       const x = sortValue(a, sort.key);
@@ -210,7 +239,7 @@ export function Watchlist() {
       if (y == null) return -1;
       return (x < y ? -1 : x > y ? 1 : 0) * sort.dir;
     });
-  }, [list, quotes, dcf, sort]);
+  }, [list, quotes, live, dcf, sort]);
 
   const syncLink = mounted && list.length ? `${window.location.origin}/watchlist?add=${list.join(",")}` : "";
   const copyLink = async () => {
@@ -252,7 +281,8 @@ export function Watchlist() {
               {list.length} {list.length === 1 ? "stock" : "stocks"}
               {updatedAt && (
                 <>
-                  {" · "}quotes at {updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}, refreshing every minute
+                  {" · "}details at {updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                  {Object.values(live).some((q) => q.source === "finnhub") ? ", prices live" : ", prices delayed"}
                 </>
               )}
             </p>
@@ -358,7 +388,8 @@ export function Watchlist() {
         )}
 
         <p className="mt-4 max-w-3xl text-[11.5px] leading-relaxed text-faint">
-          Quotes, analyst targets and dates from Yahoo Finance, delayed. DCF value is this app&apos;s base case, from your saved model where you
+          Prices are real-time from Finnhub where available (green dot), otherwise delayed from Yahoo (grey dot). Analyst targets,
+          P/E, pre/post-market and dates come from Yahoo Finance. DCF value is this app&apos;s base case, from your saved model where you
           edited one in this browser (marked with a dot), otherwise from the defaults derived from filings. Your list is saved in this browser;
           use <span className="text-muted">Copy sync link</span> to bring it to another device.
         </p>
@@ -421,7 +452,15 @@ function WatchRow({ r, first, last, reorder }: { r: Row; first: boolean; last: b
           <span className="block truncate font-sans text-[11.5px] text-faint">{q?.name ?? (r.ticker === "DEMO" ? "Sample company" : " ")}</span>
         </Link>
       </th>
-      <td className={clsx(cell, "text-ink")}>{q?.error ? <span className="text-faint" title={q.error}>n/a</span> : money(q?.price, ccy)}</td>
+      <td className={clsx(cell, "text-ink")}>
+        {q?.error ? <span className="text-faint" title={q.error}>n/a</span> : money(q?.price, ccy)}
+        {r.live && (
+          <span
+            className={clsx("ml-1.5 inline-block size-1.5 rounded-full align-middle", r.live.source === "finnhub" ? "bg-up" : "bg-faint")}
+            title={r.live.source === "finnhub" ? "Real-time (Finnhub)" : "Delayed (Yahoo)"}
+          />
+        )}
+      </td>
       <td className={cell}>
         <Chg x={q?.changePct} />
       </td>
