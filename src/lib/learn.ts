@@ -41,7 +41,7 @@ export const LESSONS = {
   },
   history: {
     title: "Reported history",
-    what: "Ten years of revenue, margins, taxes, reinvestment and returns from annual filings.",
+    what: "Up to ten years of revenue, margins, taxes, reinvestment and returns from annual filings.",
     think:
       "Understand the business before forecasting it. Look for the shape of growth, how cyclical margins are, and above all whether returns on capital have stayed above the cost of capital. That persistence is what a moat looks like in numbers.",
     rule: "If you can't explain why the last 10 years looked the way they did, you can't forecast the next 10.",
@@ -68,8 +68,36 @@ export const LESSONS = {
   },
   currentMargin: {
     title: "Operating margin today",
-    what: "Operating income (EBIT) divided by revenue in the latest year.",
+    what: "Operating income (EBIT) divided by revenue in the latest year. If the filings don't report operating income, it starts from pre-tax income instead.",
     think: "Your starting point. Check whether it is a normal year or a peak or trough before projecting from it.",
+  },
+  pretaxMargin: {
+    title: "Pre-tax margin today",
+    what: "Pre-tax income divided by revenue in the latest year. For a financial company, interest paid is an operating cost, so pre-tax income is the right profit line.",
+    think: "Check whether credit losses, trading gains or one-offs made the latest year unusual.",
+  },
+  targetPretaxMargin: {
+    title: "Target pre-tax margin",
+    what: "The pre-tax margin you expect the business to settle at once mature.",
+    think: "Anchor it to the company's own history and to the best-run peers. For lenders, a normal year includes normal credit losses.",
+  },
+  salesToEquity: {
+    title: "Sales to equity",
+    what: "Revenue added per $1 of new book equity. It sets how much of each year's earnings must be retained to fund growth.",
+    think:
+      "Financials grow on capital: regulators and counterparties require equity behind every loan, trade or policy. The default uses revenue added over equity added in recent years.",
+    rule: "Lower it for capital-hungry lenders; higher for asset-light brokers and asset managers.",
+  },
+  terminalRoe: {
+    title: "Return on new equity",
+    what: "The return the company earns on equity retained in the terminal period.",
+    think: "If it equals the cost of equity, growth adds nothing to value. A durable franchise (cheap deposits, scale, brand) keeps it above.",
+    rule: "Set it equal to the cost of equity for an average financial, a few points above for a strong franchise.",
+  },
+  exitPE: {
+    title: "Exit P/E",
+    what: "An alternative terminal value: final-year net income times a price-to-earnings multiple.",
+    think: "It imports today's market mood into your long-run estimate. Use it as a cross-check against the perpetuity method.",
   },
   targetMargin: {
     title: "Target operating margin",
@@ -100,6 +128,12 @@ export const LESSONS = {
     think:
       "Growth is not free. Value is created only when the return on the capital invested to grow beats the cost of that capital. This ratio links the two: high sales-to-capital means cheap growth and high returns.",
     rule: "Software and asset-light businesses: 2–5×. Industrials, utilities and retailers with stores: below 1.5×.",
+  },
+  costOfEquity: {
+    title: "Cost of equity",
+    what: "The return shareholders require: the risk-free rate plus beta times the equity risk premium. In the equity approach it is the discount rate.",
+    think: "Debt is not part of the discount rate here, because the cash flows are already after interest paid to depositors and lenders.",
+    rule: "8–11% for a large, stable bank or insurer; 12%+ for volatile brokers and fintechs.",
   },
   costOfCapital: {
     title: "Cost of capital (WACC)",
@@ -185,7 +219,7 @@ export const LESSONS = {
   },
   sharesOutstanding: {
     title: "Diluted shares",
-    what: "Shares outstanding, in millions. Equity value is divided by this.",
+    what: "The share count that equity value is divided by. It starts from shares outstanding in the latest filing or quote; add options and restricted stock to make it fully diluted.",
     think:
       "Stock-based compensation keeps adding shares. Either count it as an expense in margins (the model does, through GAAP operating income) or raise the share count. Never ignore it.",
   },
@@ -194,6 +228,11 @@ export const LESSONS = {
     what: "Your assumptions turned into ten years of revenue, profit, reinvestment and free cash flow.",
     think:
       "Read it like a story. Does the revenue in the final year make sense against the size of the market? Does the ROIC path look like the history you studied?",
+  },
+  fcfe: {
+    title: "Free cash flow to equity",
+    what: "Net income minus the equity the company must retain to grow: the cash that could be paid to shareholders.",
+    think: "For a bank or broker, growth needs capital. Each extra dollar of revenue needs 1 ÷ sales-to-equity of new book equity, which comes out of earnings.",
   },
   fcff: {
     title: "Free cash flow to the firm",
@@ -204,10 +243,47 @@ export const LESSONS = {
     title: "From cash flows to equity",
     what: "Enterprise value is the value of operations. Add cash, subtract debt and other claims, and you reach the value that belongs to shareholders.",
   },
+  bridgeEquity: {
+    title: "From cash flows to equity",
+    what: "The equity approach values shareholders' cash flows directly, so there is no enterprise value and no cash or debt to add or subtract. Only minority interests and other adjustments remain.",
+    think: "For a bank or broker, deposits, customer balances and borrowings are the raw material of the business, not financing. Their cost is already in net income.",
+  },
+  enterpriseValue: {
+    title: "Enterprise value",
+    what: "The value of the operating business to all its investors, lenders and shareholders alike: the present value of free cash flow to the firm, including the terminal value.",
+    think: "It is independent of how the company is financed. Shareholders get what is left after debt and other claims are paid, which is the equity value.",
+  },
+  equityValue: {
+    title: "Equity value",
+    what: "The value that belongs to shareholders: enterprise value plus cash, minus debt, minority interest and other claims. Divide it by the share count to get value per share.",
+    think: "Compare it with the market cap shown below it. The gap between the two is your margin of safety in total-company terms.",
+  },
+  equityValueFin: {
+    title: "Equity value",
+    what: "The value that belongs to shareholders: the present value of cash flow to equity plus the terminal value, minus minority interest and other claims. Divide it by the share count to get value per share.",
+    think: "Compare it with the market cap shown below it, and with book equity. Financials are often judged by price to book against their return on equity.",
+  },
+  bookEquity: {
+    title: "Book equity",
+    what: "Shareholders' equity on the latest balance sheet. For a financial company it is the capital that supports its lending, trading or underwriting.",
+    think: "Price to book should rise with return on equity. A firm earning below its cost of equity deserves to trade below book.",
+  },
+  approach: {
+    title: "Valuation approach",
+    what: "Firm: free cash flow to the firm, discounted at WACC, then cash added and debt subtracted. Equity: cash flow to shareholders, discounted at the cost of equity, with no cash/debt bridge.",
+    think:
+      "For banks, brokers and insurers, debt and cash are part of operations (deposits, customer balances, funding), so the firm approach double counts or misreads them and can even produce a negative value. Damodaran values financials on equity for this reason.",
+    rule: "Use Equity for banks, brokers, insurers and lenders; Firm for everything else. The app picks one from the company's industry.",
+  },
   terminalShare: {
     title: "Terminal value share",
-    what: "The share of enterprise value that comes from after the forecast period.",
+    what: "The share of total present value (before cash and debt) that comes from after the forecast period. It shows a dash when that total is zero or negative, because a share of a negative number is meaningless.",
     rule: "Above 80% means the answer rests mostly on the long-run assumptions. Check them twice.",
+  },
+  roeOut: {
+    title: "Final-year ROE",
+    what: "Net income over book equity in the last forecast year, implied by your margin and sales-to-equity assumptions.",
+    think: "Compare it with the history and with the cost of equity. An ROE far above anything the company or its peers have earned means the assumptions are generous.",
   },
   roicOut: {
     title: "Final-year ROIC",
@@ -245,7 +321,7 @@ export const LESSONS = {
   },
   monteCarlo: {
     title: "Range of outcomes",
-    what: "Thousands of runs with growth, margin, WACC and reinvestment varied together.",
+    what: "Hundreds of runs with growth, margin, discount rate and reinvestment varied together.",
     think: "A reminder that value is a distribution. The share of outcomes above today's price is a rough probability that you're right.",
   },
   brief: {
@@ -416,3 +492,34 @@ export const TOUR: TourStep[] = [
       "Price first, business second, drivers third, risk fourth, then test against the market. The ⓘ marks next to every input stay on, and you can restart this tour from the top bar at any time.",
   },
 ];
+
+/** Labels and tooltips that change with the valuation approach, so every view says the same thing. */
+export function terms(approach: "firm" | "equity" | undefined) {
+  const eq = approach === "equity";
+  return {
+    eq,
+    rate: eq ? "Cost of equity" : "WACC",
+    rateLesson: (eq ? "costOfEquity" : "costOfCapital") as LessonId,
+    margin: eq ? "pre-tax margin" : "operating margin",
+    marginNow: eq ? "Pre-tax margin today" : "Operating margin today",
+    marginTarget: eq ? "Target pre-tax margin" : "Target operating margin",
+    marginNowLesson: (eq ? "pretaxMargin" : "currentMargin") as LessonId,
+    marginTargetLesson: (eq ? "targetPretaxMargin" : "targetMargin") as LessonId,
+    profit: eq ? "Pre-tax income" : "EBIT",
+    afterTax: eq ? "Net income" : "NOPAT",
+    stc: eq ? "Sales to equity" : "Sales to capital",
+    stcLesson: (eq ? "salesToEquity" : "salesToCapital") as LessonId,
+    returns: eq ? "ROE" : "ROIC",
+    returnsLesson: (eq ? "roeOut" : "roicOut") as LessonId,
+    terminalReturn: eq ? "Return on new equity" : "Return on new capital",
+    terminalReturnLesson: (eq ? "terminalRoe" : "terminalRoic") as LessonId,
+    exit: eq ? "Exit P/E" : "Exit EV / EBIT",
+    exitShort: eq ? "P/E" : "EV/EBIT",
+    exitLesson: (eq ? "exitPE" : "exitMultiple") as LessonId,
+    fcf: eq ? "Free cash flow to equity" : "Free cash flow to firm",
+    fcfShort: eq ? "FCFE" : "FCFF",
+    fcfLesson: (eq ? "fcfe" : "fcff") as LessonId,
+    bridgeLesson: (eq ? "bridgeEquity" : "bridge") as LessonId,
+    equityValueLesson: (eq ? "equityValueFin" : "equityValue") as LessonId,
+  };
+}

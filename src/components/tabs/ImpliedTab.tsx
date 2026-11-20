@@ -6,6 +6,7 @@ import { monteCarlo, reverseDcf, tornado } from "@/lib/dcf/analysis";
 import { historicalMetrics } from "@/lib/dcf/defaults";
 import { money, pct } from "@/lib/format";
 import type { Assumptions, CompanyData } from "@/lib/dcf/types";
+import { terms } from "@/lib/learn";
 
 export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyData; price: number | null; base: number }) {
   const ccy = c.currency;
@@ -16,7 +17,8 @@ export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyDa
     return v.length ? v.reduce((s, x) => s + x, 0) / v.length : NaN;
   };
   const histGrowth = avg(recent.map((h) => h.growth));
-  const histMargin = avg(recent.map((h) => h.operatingMargin));
+  const T = terms(a.approach);
+  const histMargin = avg(recent.map((h) => (T.eq ? h.pretaxMargin : h.operatingMargin ?? h.pretaxMargin)));
 
   const implied = price
     ? {
@@ -53,8 +55,8 @@ export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyDa
         {implied ? (
           <div className="grid gap-4 sm:grid-cols-3">
             <ImpliedCard label="Revenue growth" implied={implied.growth} model={a.revenueGrowth} history={histGrowth} historyLabel="5-yr avg" />
-            <ImpliedCard label="Target operating margin" implied={implied.margin} model={a.targetMargin} history={histMargin} historyLabel="5-yr avg" />
-            <ImpliedCard label="Discount rate (WACC)" implied={implied.wacc} model={null} history={NaN} historyLabel="" note="The return you earn buying at today's price, if your cash flows come true." />
+            <ImpliedCard label={T.marginTarget} implied={implied.margin} model={a.targetMargin} history={histMargin} historyLabel="5-yr avg" />
+            <ImpliedCard label={`Discount rate (${T.rate})`} implied={implied.wacc} model={null} history={NaN} historyLabel="" note="The return you earn buying at today's price, if your cash flows come true." />
           </div>
         ) : (
           <p className="text-[13px] text-muted">Enter a market price to see what it implies.</p>
@@ -89,7 +91,7 @@ export function ImpliedTab({ a, c, price, base }: { a: Assumptions; c: CompanyDa
         <Panel
           title="Range of outcomes"
           info="monteCarlo"
-          note={`${mc.samples.length.toLocaleString()} simulations, shocking growth, margin, WACC and reinvestment together`}
+          note={`${mc.samples.length.toLocaleString()} simulations, shocking growth, margin, ${T.rate === "WACC" ? "WACC" : "cost of equity"} and reinvestment together`}
         >
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">

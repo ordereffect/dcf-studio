@@ -4,6 +4,7 @@ import { reverseDcf, scenarioValues, defaultScenarios, sensitivityGrid } from ".
 import type { Assumptions } from "./types";
 
 const base: Assumptions = {
+  approach: "firm",
   forecastYears: 5,
   baseRevenue: 1000,
   revenueGrowth: 0.1,

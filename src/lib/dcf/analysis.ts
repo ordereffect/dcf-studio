@@ -117,7 +117,7 @@ export function tornado(a: Assumptions) {
       highLabel: "+3 pts",
     },
     {
-      label: "WACC",
+      label: a.approach === "equity" ? "Cost of equity" : "WACC",
       low: { ...a, waccOverride: w + 0.01 },
       high: { ...a, waccOverride: w - 0.01 },
       lowLabel: "+1 pt",

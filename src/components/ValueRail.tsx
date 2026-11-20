@@ -23,9 +23,13 @@ export function ValueRail({ currency, price, base, bear, bull, weighted, p10, p9
   let lo = Math.min(...pts);
   let hi = Math.max(...pts);
   const pad = (hi - lo || Math.abs(hi) || 1) * 0.12;
-  lo = Math.max(0, lo - pad);
+  // Start the axis at zero when every value is positive; otherwise extend it below zero so
+  // negative values stay inside the card instead of spilling off the left edge.
+  lo = lo >= 0 ? Math.max(0, lo - pad) : lo - pad;
   hi = hi + pad;
-  const x = (v: number) => `${((v - lo) / (hi - lo)) * 100}%`;
+  // Positions are clamped as a last line of defence against anything escaping the card.
+  const x = (v: number) => `${Math.min(100, Math.max(0, ((v - lo) / (hi - lo)) * 100))}%`;
+  const crossesZero = lo < 0 && hi > 0;
   const ok = (v: number) => Number.isFinite(v);
   const frac = (v: number) => (v - lo) / (hi - lo);
   const near = (u: number, w: number, d: number) => ok(u) && ok(w) && Math.abs(frac(u) - frac(w)) < d;
@@ -55,6 +59,9 @@ export function ValueRail({ currency, price, base, bear, bull, weighted, p10, p9
         )}
         {/* axis */}
         <div className="absolute inset-x-0 top-[62px] h-px bg-rule" />
+        {crossesZero && (
+          <div className="absolute top-[44px] h-[36px] w-px bg-down/70" style={{ left: x(0) }} title="Zero: values left of this line are negative" />
+        )}
         {/* bear–bull range */}
         {ok(bear) && ok(bull) && (
           <div
@@ -93,7 +100,7 @@ export function ValueRail({ currency, price, base, bear, bull, weighted, p10, p9
       </div>
       <div className="relative h-4 border-t border-rule/0 text-[11px] text-faint">
         {ticks.map((t) => (
-          <span key={t} className="num absolute -translate-x-1/2" style={{ left: x(t) }}>
+          <span key={t} className={clsx("num absolute -translate-x-1/2", t === 0 && crossesZero && "text-down")} style={{ left: x(t) }}>
             {money(t, currency, 0)}
           </span>
         ))}

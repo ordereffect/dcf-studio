@@ -38,21 +38,31 @@ export interface CompanyData {
 
 export type TerminalMethod = "perpetuity" | "exitMultiple";
 
+/**
+ * "firm": classic FCFF model discounted at WACC, then cash added and debt subtracted.
+ * "equity": for banks, brokers and insurers, whose debt and cash are part of operations.
+ * Cash flow to equity (net income minus the equity retained to grow) is discounted at the
+ * cost of equity, and there is no cash/debt bridge.
+ */
+export type Approach = "firm" | "equity";
+
 /** Every input the model needs. Rates are decimals (0.08 = 8%). */
 export interface Assumptions {
+  approach: Approach;
   forecastYears: number; // 5..10
   baseRevenue: number;
   // Revenue growth: constant for `highGrowthYears`, then fades linearly to terminal growth.
   revenueGrowth: number;
   highGrowthYears: number;
-  // Operating margin: moves linearly from current to target by `marginConvergenceYear`.
+  // Operating margin (pre-tax margin in the equity approach): moves linearly from current to target by `marginConvergenceYear`.
   currentMargin: number;
   targetMargin: number;
   marginConvergenceYear: number;
   // Tax: effective today, converging to marginal by the final year.
   effectiveTaxRate: number;
   marginalTaxRate: number;
-  // Reinvestment: each $1 of new revenue requires 1/salesToCapital of invested capital.
+  // Reinvestment: each $1 of new revenue requires 1/salesToCapital of invested capital
+  // (of book equity in the equity approach).
   salesToCapital: number;
   // Cost of capital
   riskFreeRate: number;
@@ -64,13 +74,14 @@ export interface Assumptions {
   // Terminal value
   terminalMethod: TerminalMethod;
   terminalGrowth: number;
-  terminalRoic: number; // return on new capital in perpetuity
-  exitMultiple: number; // EV / EBIT applied to final-year EBIT
+  terminalRoic: number; // return on new capital (ROE in the equity approach) in perpetuity
+  exitMultiple: number; // EV / EBIT on final-year EBIT (P/E on net income in the equity approach)
   // Bridge from enterprise value to equity value
   cash: number;
   debt: number; // incl. leases if you choose to treat them as debt
   minorityInterest: number;
   otherAdjustments: number; // + non-operating assets, - other claims
+  bookEquity?: number; // latest book equity; the equity approach starts from it
   sharesOutstanding: number;
   // Conventions
   midYear: boolean;
@@ -82,13 +93,13 @@ export interface ProjectionYear {
   growth: number;
   revenue: number;
   margin: number;
-  ebit: number;
+  ebit: number; // pre-tax income in the equity approach
   taxRate: number;
-  nopat: number;
+  nopat: number; // net income in the equity approach
   reinvestment: number;
-  fcff: number;
-  investedCapital: number; // end of year
-  roic: number; // NOPAT / beginning invested capital
+  fcff: number; // free cash flow to equity in the equity approach
+  investedCapital: number; // end of year (book equity in the equity approach)
+  roic: number; // NOPAT / beginning invested capital (ROE in the equity approach)
   discountFactor: number;
   pvFcff: number;
 }
@@ -98,7 +109,7 @@ export interface WaccBreakdown {
   afterTaxCostOfDebt: number;
   equityWeight: number;
   debtWeight: number;
-  wacc: number;
+  wacc: number; // the discount rate actually used: cost of equity in the equity approach
 }
 
 export interface Valuation {
@@ -113,10 +124,10 @@ export interface Valuation {
     reinvestmentRate: number;
   };
   sumPvFcff: number;
-  enterpriseValue: number;
+  enterpriseValue: number; // NaN in the equity approach
   equityValue: number;
   valuePerShare: number;
-  terminalShare: number; // PV(TV) / EV
+  terminalShare: number; // PV(TV) / total PV; NaN when total PV is not positive
   warnings: string[];
 }
 

@@ -4,6 +4,7 @@ import { Panel } from "../ui";
 import { SENSITIVITY_LABELS, sensitivityGrid, type SensitivityKey } from "@/lib/dcf/analysis";
 import { money, mult, pct } from "@/lib/format";
 import type { Assumptions } from "@/lib/dcf/types";
+import { terms } from "@/lib/learn";
 
 const STEPS: Record<SensitivityKey, number> = {
   wacc: 0.005,
@@ -14,15 +15,18 @@ const STEPS: Record<SensitivityKey, number> = {
 };
 const fmt = (k: SensitivityKey, v: number) => (k === "exitMultiple" ? mult(v) : pct(v, k === "wacc" || k === "terminalGrowth" ? 1 : 0));
 
-const PRESETS: { row: SensitivityKey; col: SensitivityKey; title: string }[] = [
-  { row: "wacc", col: "terminalGrowth", title: "WACC × terminal growth" },
+const presets = (rate: string): { row: SensitivityKey; col: SensitivityKey; title: string }[] => [
+  { row: "wacc", col: "terminalGrowth", title: `${rate} × terminal growth` },
   { row: "revenueGrowth", col: "targetMargin", title: "Growth × margin" },
-  { row: "wacc", col: "exitMultiple", title: "WACC × exit multiple" },
+  { row: "wacc", col: "exitMultiple", title: `${rate} × exit multiple` },
 ];
 
 export function SensitivityTab({ a, currency, price }: { a: Assumptions; currency: string; price: number | null }) {
   const [preset, setPreset] = useState(0);
+  const PRESETS = presets(terms(a.approach).rate);
   const p = PRESETS[preset];
+  const T = terms(a.approach);
+  const label = (k: SensitivityKey) => (k === "wacc" ? T.rate : k === "exitMultiple" ? `Exit ${T.exitShort}` : SENSITIVITY_LABELS[k]);
   const model = p.col === "exitMultiple" ? { ...a, terminalMethod: "exitMultiple" as const } : a;
   const g = sensitivityGrid(model, p.row, p.col, STEPS[p.row], STEPS[p.col], 7);
 
@@ -65,8 +69,8 @@ export function SensitivityTab({ a, currency, price }: { a: Assumptions; currenc
           <thead>
             <tr>
               <th className="w-24 text-left text-[11.5px] font-normal leading-tight text-muted">
-                {SENSITIVITY_LABELS[p.row]} ↓<br />
-                {SENSITIVITY_LABELS[p.col]} →
+                {label(p.row)} ↓<br />
+                {label(p.col)} →
               </th>
               {g.cols.map((c, j) => (
                 <th key={j} className="pb-1 text-[12px] font-medium text-muted">

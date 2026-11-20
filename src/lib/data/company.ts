@@ -1,5 +1,6 @@
 import "server-only";
 import type { CompanyData } from "@/lib/dcf/types";
+import { isFinancial } from "@/lib/dcf/defaults";
 import { fetchEdgar } from "./edgar";
 import { fetchMarket, fetchRiskFree, fetchYahooFundamentals } from "./market";
 
@@ -49,6 +50,13 @@ export async function getCompany(ticker: string): Promise<CompanyData> {
 
   if (e && m?.currency && e.currency !== m.currency) {
     warnings.push(`Financials are reported in ${e.currency} but the stock trades in ${m.currency}. Convert before comparing value to price.`);
+  }
+
+  const lastYear = historicals.at(-1);
+  const financial = isFinancial({ sector: m?.sector, industry: m?.industry });
+  // Financials get an approach note in the workbench instead, since it depends on the toggle.
+  if (!financial && lastYear && lastYear.operatingIncome == null && lastYear.pretaxIncome != null) {
+    warnings.push("The filings don't report operating income, so margins start from pre-tax income. Check them against the income statement.");
   }
 
   return {
