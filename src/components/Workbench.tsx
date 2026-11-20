@@ -19,6 +19,9 @@ import { ValueRail } from "./ValueRail";
 import { AssumptionsPanel } from "./AssumptionsPanel";
 import { Stat } from "./ui";
 import { FollowButton, WatchlistLink } from "./FollowButton";
+import { LiveBadge } from "./LiveBadge";
+import { PriceChart } from "./PriceChart";
+import { useLiveQuotes } from "@/lib/useLiveQuotes";
 import { ModelTab } from "./tabs/ModelTab";
 import { ScenariosTab } from "./tabs/ScenariosTab";
 import { SensitivityTab } from "./tabs/SensitivityTab";
@@ -147,6 +150,13 @@ function Ready() {
   const liveA = useModel((s) => s.assumptions)!;
   const price = useModel((s) => s.price);
   const setPrice = useModel((s) => s.setPrice);
+  const setLivePrice = useModel((s) => s.setLivePrice);
+  const backToMarketPrice = useModel((s) => s.backToMarketPrice);
+  const priceManual = useModel((s) => s.priceManual);
+  const live = useLiveQuotes([c.ticker])[c.ticker];
+  useEffect(() => {
+    if (live?.price) setLivePrice(live.price);
+  }, [live, setLivePrice]);
   const scenarios = useModel((s) => s.scenarios);
   const reset = useModel((s) => s.reset);
   const tab = useUi((s) => s.tab);
@@ -236,6 +246,13 @@ function Ready() {
             <div className={clsx("num text-[13px] font-medium", upside >= 0 ? "text-up" : "text-down")}>
               {Number.isFinite(upside) ? `${signedPct(upside)} ${upside >= 0 ? "upside" : "downside"}` : " "}
             </div>
+            {priceManual ? (
+              <button onClick={() => backToMarketPrice(live?.price ?? null)} className="num text-[11.5px] text-brass hover:underline">
+                Your price · use market{live?.price ? ` ${live.price.toFixed(2)}` : ""}
+              </button>
+            ) : (
+              live && <LiveBadge q={live} />
+            )}
           </div>
         </div>
       </section>
@@ -282,6 +299,8 @@ function Ready() {
           <Stat label="Weighted value" info="weighted" value={money(sv.weighted, c.currency)} sub={price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined} />
         </div>
       </section>
+
+      <PriceChart ticker={c.ticker} exchange={c.exchange} />
 
       {warnings.length > 0 && (
         <ul className="mt-4 grid gap-1.5">

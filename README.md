@@ -32,14 +32,17 @@ Open `/t/DEMO` for a fictional sample company that works offline.
 2. **Add New → Project**, then **Import** this GitHub repository (grant Vercel access to it if asked).
 3. Leave the framework preset as **Next.js** and all build settings at their defaults.
 4. Under **Environment Variables** add `SEC_USER_AGENT` = `DCF Studio your-email@example.com`. The SEC refuses requests (HTTP 403) from clients that do not identify themselves with a contact address. Without it, history falls back to Yahoo Finance (fewer years).
-5. Click **Deploy**. Every push to `main` redeploys automatically.
+5. Optional, for real-time prices: add `FINNHUB_API_KEY` with a free key from [finnhub.io/register](https://finnhub.io/register). Without it, prices come from Yahoo Finance (may be delayed).
+6. Click **Deploy**. Every push to `main` redeploys automatically.
 
 ## Data sources
 
 | Data | Source | Notes |
 |---|---|---|
 | Annual financials | SEC EDGAR XBRL company facts | Free, no key. 10-K, 20-F and 40-F filers. |
-| Price, shares, beta, profile | Yahoo Finance via `yahoo-finance2` | Unofficial; if it fails, type the price in. |
+| Live price (stock page, watchlist) | Finnhub `/quote`, Yahoo fallback | Real-time with `FINNHUB_API_KEY` (free tier: 60 calls/min; the app caches 10s and slows polling for long lists). Falls back to Yahoo without a key or when rate-limited. |
+| Price chart | TradingView Advanced Chart widget | Display only; the app can't read prices from it. |
+| Shares, beta, profile, analyst targets, dates | Yahoo Finance via `yahoo-finance2` | Unofficial; if it fails, type the price in. |
 | Risk-free rate | US 10-year Treasury yield (`^TNX`) | Falls back to 4.3%. |
 | Equity risk premium | Default 4.3% (in line with Damodaran's implied ERP) | Edit in the app. |
 

@@ -21,6 +21,8 @@ interface ModelState {
   defaults: Assumptions | null;
   scenarios: Scenario[];
   price: number | null;
+  /** True once you type a price: live updates then leave it alone until you go back to market. */
+  priceManual: boolean;
   notes: string;
   load: (c: CompanyData) => void;
   set: (patch: Partial<Assumptions>) => void;
@@ -28,6 +30,8 @@ interface ModelState {
   setScenario: (id: Scenario["id"], patch: Partial<Scenario>) => void;
   setShift: (id: Scenario["id"], key: keyof ScenarioShifts, value: number) => void;
   setPrice: (p: number | null) => void;
+  setLivePrice: (p: number) => void;
+  backToMarketPrice: (p: number | null) => void;
   setNotes: (n: string) => void;
   reset: () => void;
 }
@@ -79,6 +83,7 @@ export const useModel = create<ModelState>((set, get) => ({
   defaults: null,
   scenarios: [],
   price: null,
+  priceManual: false,
   notes: "",
   load: (c) => {
     let saved: SavedModel | null = null;
@@ -101,6 +106,7 @@ export const useModel = create<ModelState>((set, get) => ({
       scenarios: saved?.scenarios?.every((x) => x.shifts) ? saved.scenarios : defaultScenarios(),
       // A live price always wins over a stale saved one.
       price: c.price ?? saved?.price ?? null,
+      priceManual: false,
       notes: saved?.notes ?? "",
     });
   },
@@ -142,7 +148,15 @@ export const useModel = create<ModelState>((set, get) => ({
     persist(get());
   },
   setPrice: (p) => {
-    set({ price: p });
+    set({ price: p, priceManual: true });
+    persist(get());
+  },
+  setLivePrice: (p) => {
+    // Not persisted: it changes every few seconds and a reload fetches it again.
+    if (!get().priceManual && get().price !== p) set({ price: p });
+  },
+  backToMarketPrice: (p) => {
+    set({ price: p ?? get().company?.price ?? null, priceManual: false });
     persist(get());
   },
   setNotes: (n) => {
@@ -156,7 +170,7 @@ export const useModel = create<ModelState>((set, get) => ({
       localStorage.removeItem(KEY(company.ticker));
     } catch {}
     const defaults = deriveAssumptions(company);
-    set({ defaults, assumptions: defaults, scenarios: defaultScenarios(), price: company.price, notes: "" });
+    set({ defaults, assumptions: defaults, scenarios: defaultScenarios(), price: company.price, priceManual: false, notes: "" });
   },
 }));
 
