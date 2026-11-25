@@ -8,6 +8,8 @@ import { loadSavedModel } from "@/lib/store";
 import { runDcf } from "@/lib/dcf/engine";
 import { deriveAssumptions } from "@/lib/dcf/defaults";
 import type { CompanyData } from "@/lib/dcf/types";
+import { restoreAssumptions } from "@/lib/restore";
+import { fetchCompany } from "@/lib/fetchCompany";
 import { DEMO_COMPANY } from "@/lib/demo";
 import type { WatchQuote } from "@/lib/data/quotes";
 import { money, pct, signedPct } from "@/lib/format";
@@ -63,21 +65,21 @@ const DEMO_QUOTE: WatchQuote = {
   forwardDividendYield: null,
 };
 
-async function computeDcf(ticker: string): Promise<DcfCell> {
+async function computeDcf(ticker: string, fresh = false): Promise<DcfCell> {
   const saved = loadSavedModel(ticker);
   if (ticker === "DEMO") {
     const a = saved ? { ...deriveAssumptions(DEMO_COMPANY), ...saved.assumptions } : deriveAssumptions(DEMO_COMPANY);
     return { value: runDcf(a).valuePerShare, source: saved ? "yours" : "default", currency: "USD" };
   }
-  const r = await fetch(`/api/company/${encodeURIComponent(ticker)}`);
-  if (!r.ok) {
+  let c: CompanyData;
+  try {
+    c = await fetchCompany(ticker, { fresh });
+  } catch {
     // No data to derive defaults from; a saved model still stands on its own.
     if (saved) return { value: runDcf(saved.assumptions).valuePerShare, source: "yours", currency: "USD" };
     return { value: null, source: "default", currency: "USD" };
   }
-  const c = (await r.json()) as CompanyData;
-  const defaults = deriveAssumptions(c);
-  const a = saved ? { ...defaults, ...saved.assumptions } : defaults;
+  const { assumptions: a } = restoreAssumptions(c, saved);
   const v = c.historicals.length || saved ? runDcf(a).valuePerShare : null;
   return { value: v != null && Number.isFinite(v) ? v : null, source: saved ? "yours" : "default", currency: c.currency };
 }
@@ -202,6 +204,8 @@ export function Watchlist() {
 
   // DCF values, a few at a time; each needs the company's filings.
   const started = useRef(new Set<string>());
+  // Bumped by Refresh: recompute every DCF from fresh, uncached data.
+  const [freshRound, setFreshRound] = useState(0);
   useEffect(() => {
     const todo = list.filter((t) => !started.current.has(t));
     if (!todo.length) return;
@@ -212,7 +216,7 @@ export function Watchlist() {
       while (i < todo.length) {
         const t = todo[i++];
         try {
-          const cell = await computeDcf(t);
+          const cell = await computeDcf(t, freshRound > 0);
           setDcf((prev) => ({ ...prev, [t]: cell }));
         } catch {
           setDcf((prev) => ({ ...prev, [t]: "error" }));
@@ -220,7 +224,7 @@ export function Watchlist() {
       }
     };
     Array.from({ length: Math.min(3, todo.length) }, worker);
-  }, [list]);
+  }, [list, freshRound]);
 
   const rows: Row[] = useMemo(() => {
     const base = list.map((t) => {
@@ -290,8 +294,13 @@ export function Watchlist() {
           {list.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <button
-                onClick={refresh}
+                onClick={() => {
+                  refresh();
+                  started.current.clear();
+                  setFreshRound((n) => n + 1);
+                }}
                 disabled={loading}
+                title="Fetch the latest prices, shares outstanding and filings, skipping cached data"
                 className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-muted hover:text-ink disabled:opacity-60"
               >
                 <RefreshCw className={clsx("size-3.5", loading && "animate-spin")} aria-hidden />

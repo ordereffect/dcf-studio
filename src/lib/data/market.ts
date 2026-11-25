@@ -1,6 +1,7 @@
 import "server-only";
 import YahooFinance from "yahoo-finance2";
 import type { HistoricalYear } from "@/lib/dcf/types";
+import type { Split } from "./shares";
 
 const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
 
@@ -34,6 +35,25 @@ export async function fetchMarket(ticker: string): Promise<MarketData> {
     industry: q.assetProfile?.industry ?? undefined,
     description: q.assetProfile?.longBusinessSummary ?? undefined,
   };
+}
+
+/** Stock splits over the last few years, oldest first. Empty when Yahoo has none or is unreachable. */
+export async function fetchSplits(ticker: string, years = 3): Promise<Split[]> {
+  const symbol = ticker.toUpperCase().replace(".", "-");
+  try {
+    const r = await yf.chart(symbol, {
+      period1: new Date(Date.now() - years * 365 * 86400_000),
+      interval: "1mo",
+      events: "split",
+      return: "array",
+    });
+    return (r.events?.splits ?? [])
+      .filter((s) => s.numerator > 0 && s.denominator > 0)
+      .map((s) => ({ date: new Date(s.date).toISOString().slice(0, 10), ratio: s.numerator / s.denominator }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1));
+  } catch {
+    return [];
+  }
 }
 
 /** US 10-year Treasury yield as a decimal, from the ^TNX index (quoted in percent). */

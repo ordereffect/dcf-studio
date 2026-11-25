@@ -158,6 +158,8 @@ export interface EdgarResult {
   currency: string;
   historicals: HistoricalYear[];
   sharesOutstanding: number | null;
+  /** Date the cover-page share count was taken (it predates any later split). */
+  sharesAsOf: string | null;
 }
 
 export async function fetchEdgar(ticker: string, years = 10): Promise<EdgarResult | null> {
@@ -209,11 +211,13 @@ export async function fetchEdgar(ticker: string, years = 10): Promise<EdgarResul
   const latestShares = [...sharesPts].sort((a, b) => (a.end < b.end ? 1 : -1));
   // Multi-class companies report one fact per class on the same date: sum them.
   let sharesOutstanding: number | null = null;
+  let sharesAsOf: string | null = null;
   if (latestShares.length) {
     const d = latestShares[0].end;
+    sharesAsOf = d;
     const sameDay = latestShares.filter((p) => p.end === d && p.filed === latestShares[0].filed);
     sharesOutstanding = sameDay.reduce((a, p) => a + p.val, 0);
   }
 
-  return { cik, name: json.entityName, currency, historicals, sharesOutstanding };
+  return { cik, name: json.entityName, currency, historicals, sharesOutstanding, sharesAsOf };
 }
