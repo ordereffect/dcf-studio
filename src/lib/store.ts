@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { defaultScenarios } from "@/lib/dcf/analysis";
 import { deriveAssumptions } from "@/lib/dcf/defaults";
+import { dataBase, restoreAssumptions, type DataKey } from "@/lib/restore";
 import type { Approach, Assumptions, CompanyData, Scenario, ScenarioShifts } from "@/lib/dcf/types";
 import type { TabId } from "@/lib/learn";
 
@@ -13,6 +14,8 @@ export interface SavedModel {
   price: number | null;
   notes: string;
   savedAt: string;
+  /** The data values (shares, cash, debt…) the model was built on, to tell your own entries from data. */
+  base?: Partial<Pick<Assumptions, DataKey>>;
 }
 
 interface ModelState {
@@ -24,7 +27,8 @@ interface ModelState {
   /** True once you type a price: live updates then leave it alone until you go back to market. */
   priceManual: boolean;
   notes: string;
-  load: (c: CompanyData) => void;
+  /** Load fresh company data. With `refresh`, a price you typed is kept. */
+  load: (c: CompanyData, opts?: { refresh?: boolean }) => void;
   set: (patch: Partial<Assumptions>) => void;
   setApproach: (approach: Approach) => void;
   setScenario: (id: Scenario["id"], patch: Partial<Scenario>) => void;
@@ -60,7 +64,7 @@ export function loadSavedModel(ticker: string): SavedModel | null {
 }
 
 function persist(s: ModelState) {
-  if (!s.company || !s.assumptions) return;
+  if (!s.company || !s.assumptions || !s.defaults) return;
   try {
     const m: SavedModel = {
       ticker: s.company.ticker,
@@ -70,6 +74,7 @@ function persist(s: ModelState) {
       price: s.price,
       notes: s.notes,
       savedAt: new Date().toISOString(),
+      base: dataBase(s.defaults),
     };
     localStorage.setItem(KEY(s.company.ticker), JSON.stringify(m));
   } catch {
@@ -85,30 +90,28 @@ export const useModel = create<ModelState>((set, get) => ({
   price: null,
   priceManual: false,
   notes: "",
-  load: (c) => {
+  load: (c, opts) => {
     let saved: SavedModel | null = null;
     try {
       const raw = localStorage.getItem(KEY(c.ticker));
       saved = raw ? (JSON.parse(raw) as SavedModel) : null;
     } catch {}
-    const auto = deriveAssumptions(c);
-    // Models saved before the equity approach existed have no `approach`. If this company now
-    // defaults to the equity approach, their margins and reinvestment mean something else, so
-    // start the assumptions fresh (notes and scenarios are kept).
-    const savedA = saved?.assumptions;
-    const usable = savedA && (savedA.approach != null || auto.approach === "firm") ? savedA : null;
-    const defaults = usable?.approach && usable.approach !== auto.approach ? deriveAssumptions(c, usable.approach) : auto;
-    const assumptions = usable ? { ...defaults, ...usable } : defaults;
+    // Your judgment calls and own entries come from the save; shares, cash, debt and other
+    // data come from the latest filings and quotes.
+    const { defaults, assumptions } = restoreAssumptions(c, saved);
+    const keepPrice = opts?.refresh && get().priceManual;
     set({
       company: c,
       defaults,
       assumptions,
       scenarios: saved?.scenarios?.every((x) => x.shifts) ? saved.scenarios : defaultScenarios(),
-      // A live price always wins over a stale saved one.
-      price: c.price ?? saved?.price ?? null,
-      priceManual: false,
+      // A live price always wins over a stale saved one, unless you typed your own.
+      price: keepPrice ? get().price : (c.price ?? saved?.price ?? null),
+      priceManual: !!keepPrice,
       notes: saved?.notes ?? "",
     });
+    // Rewrite the save on its new data basis so later loads tell your entries from data.
+    if (saved) persist(get());
   },
   set: (patch) => {
     const a = get().assumptions;

@@ -2,7 +2,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { AlertTriangle, RefreshCw, RotateCcw } from "lucide-react";
 import { useModel, useUi } from "@/lib/store";
 import { runDcf } from "@/lib/dcf/engine";
 import { monteCarlo, scenarioValues } from "@/lib/dcf/analysis";
@@ -22,6 +22,9 @@ import { FollowButton, WatchlistLink } from "./FollowButton";
 import { LiveBadge } from "./LiveBadge";
 import { PriceChart } from "./PriceChart";
 import { useLiveQuotes } from "@/lib/useLiveQuotes";
+import { fetchCompany } from "@/lib/fetchCompany";
+import { DATA_KEYS, type DataKey } from "@/lib/restore";
+import type { Assumptions } from "@/lib/dcf/types";
 import { ModelTab } from "./tabs/ModelTab";
 import { ScenariosTab } from "./tabs/ScenariosTab";
 import { SensitivityTab } from "./tabs/SensitivityTab";
@@ -71,12 +74,7 @@ export function Workbench({ ticker }: { ticker: string }) {
       setStatus("ready");
       return;
     }
-    fetch(`/api/company/${encodeURIComponent(ticker)}`)
-      .then(async (r) => {
-        const j = await r.json();
-        if (!r.ok) throw new Error(j.error ?? "Lookup failed");
-        return j as CompanyData;
-      })
+    fetchCompany(ticker)
       .then((c) => {
         if (cancelled) return;
         load(c);
@@ -155,6 +153,7 @@ function Ready() {
   const setLivePrice = useModel((s) => s.setLivePrice);
   const backToMarketPrice = useModel((s) => s.backToMarketPrice);
   const priceManual = useModel((s) => s.priceManual);
+  const refresh = useRefresh(c);
   const live = useLiveQuotes([c.ticker])[c.ticker];
   useEffect(() => {
     if (live?.price) setLivePrice(live.price);
@@ -219,6 +218,7 @@ function Ready() {
               ["TICKER", c.ticker],
               ["PX", price != null ? price.toFixed(2) : "–"],
               ["MCAP", big(price ? price * liveA.sharesOutstanding : c.marketCap, c.currency)],
+              ["SHARES", big(liveA.sharesOutstanding)],
               ["BETA", c.beta != null ? c.beta.toFixed(2) : "–"],
               ["UST10Y", pct(c.riskFreeRate, 2)],
               ["HIST", `${c.historicals.length}Y`],
@@ -228,7 +228,28 @@ function Ready() {
                 <dd className="text-ink">{val}</dd>
               </div>
             ))}
+            {c.ticker !== "DEMO" && c.sources[0] !== "Manual inputs" && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={refresh.run}
+                  disabled={refresh.busy}
+                  title="Fetch the latest price, shares outstanding, filings, beta and Treasury yield, skipping cached data. Values you typed yourself stay."
+                  className="inline-flex items-center gap-1 text-brass hover:underline disabled:opacity-60"
+                >
+                  <RefreshCw className={clsx("size-3", refresh.busy && "animate-spin")} aria-hidden />
+                  {refresh.busy ? "Refreshing…" : "Refresh data"}
+                </button>
+                <span className="text-faint" title={`Data fetched ${new Date(c.fetchedAt).toLocaleString()}`}>
+                  as of {timeAgo(c.fetchedAt)}
+                </span>
+              </div>
+            )}
           </dl>
+          {refresh.note && (
+            <p role="status" className={clsx("num mt-1.5 text-[12px]", refresh.note.startsWith("Couldn") ? "text-down" : "text-muted")}>
+              {refresh.note}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-end gap-x-8 gap-y-3" data-tour="headline">
           <div>
@@ -368,6 +389,74 @@ function Ready() {
       </div>
     </main>
   );
+}
+
+const DATA_LABELS: Record<DataKey, string> = {
+  sharesOutstanding: "shares",
+  baseRevenue: "revenue",
+  cash: "cash",
+  debt: "debt",
+  minorityInterest: "minority interest",
+  bookEquity: "book equity",
+  riskFreeRate: "risk-free rate",
+  beta: "beta",
+};
+
+function describeChange(k: DataKey, from: number | undefined, to: number | undefined, ccy: string) {
+  const f = (x: number | undefined) =>
+    k === "riskFreeRate" ? pct(x, 2) : k === "beta" ? (x ?? NaN).toFixed(2) : k === "sharesOutstanding" ? big(x) : big(x, ccy);
+  return `${DATA_LABELS[k]} ${f(from)} → ${f(to)}`;
+}
+
+function timeAgo(iso: string) {
+  const min = Math.round((Date.now() - Date.parse(iso)) / 60_000);
+  if (!Number.isFinite(min) || min < 1) return "just now";
+  if (min < 60) return `${min} min ago`;
+  const h = Math.round(min / 60);
+  return h < 24 ? `${h} h ago` : new Date(iso).toLocaleDateString();
+}
+
+/** The Refresh data button: refetch the company past every cache and say what changed. */
+function useRefresh(c: CompanyData) {
+  const load = useModel((s) => s.load);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  // Re-render each minute so "as of" stays honest.
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => setNote(null), [c.ticker]);
+
+  const run = async () => {
+    setBusy(true);
+    setNote(null);
+    const before: Assumptions | null = useModel.getState().assumptions;
+    try {
+      const fresh = await fetchCompany(c.ticker, { fresh: true });
+      load(fresh, { refresh: true });
+      const after = useModel.getState().assumptions;
+      const changed =
+        before && after
+          ? DATA_KEYS.filter((k) => {
+              const a = before[k];
+              const b = after[k];
+              return a !== b && !(typeof a === "number" && typeof b === "number" && Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a)));
+            })
+          : [];
+      setNote(
+        changed.length
+          ? `Updated ${changed.map((k) => describeChange(k, before![k], after![k], fresh.currency)).join(" · ")}`
+          : "Up to date: nothing changed in the data.",
+      );
+    } catch (e) {
+      setNote(`Couldn't refresh: ${e instanceof Error ? e.message : "lookup failed"}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { run, busy, note };
 }
 
 function PriceInput({ price, onChange }: { price: number | null; onChange: (p: number | null) => void }) {

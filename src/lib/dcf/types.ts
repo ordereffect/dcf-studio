@@ -33,6 +33,8 @@ export interface CompanyData {
   riskFreeRate: number | null; // decimal, e.g. 0.043
   sources: string[];
   warnings: string[];
+  /** Most recent stock split within the last year, if any. */
+  lastSplit?: { date: string; ratio: number };
   fetchedAt: string;
 }
 

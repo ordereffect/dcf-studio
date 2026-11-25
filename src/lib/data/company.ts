@@ -2,14 +2,15 @@ import "server-only";
 import type { CompanyData } from "@/lib/dcf/types";
 import { isFinancial } from "@/lib/dcf/defaults";
 import { fetchEdgar } from "./edgar";
-import { fetchMarket, fetchRiskFree, fetchYahooFundamentals } from "./market";
+import { fetchMarket, fetchRiskFree, fetchSplits, fetchYahooFundamentals } from "./market";
+import { reconcileShares, splitLabel } from "./shares";
 
 export async function getCompany(ticker: string): Promise<CompanyData> {
   const t = ticker.trim().toUpperCase();
   const warnings: string[] = [];
   const sources: string[] = [];
 
-  const [edgar, market, rf] = await Promise.allSettled([fetchEdgar(t), fetchMarket(t), fetchRiskFree()]);
+  const [edgar, market, rf, splitList] = await Promise.allSettled([fetchEdgar(t), fetchMarket(t), fetchRiskFree(), fetchSplits(t)]);
 
   const e = edgar.status === "fulfilled" ? edgar.value : null;
   const secError = edgar.status === "rejected" ? String(edgar.reason?.message ?? edgar.reason) : null;
@@ -52,6 +53,27 @@ export async function getCompany(ticker: string): Promise<CompanyData> {
     warnings.push(`Financials are reported in ${e.currency} but the stock trades in ${m.currency}. Convert before comparing value to price.`);
   }
 
+  // Put the share count on a post-split basis: data feeds trail splits by days (Yahoo) or a
+  // whole quarter (SEC cover page).
+  const splits = splitList.status === "fulfilled" ? splitList.value : [];
+  const today = new Date().toISOString().slice(0, 10);
+  const sh = reconcileShares({
+    yahooShares: m?.sharesOutstanding ?? null,
+    secShares: e?.sharesOutstanding ?? null,
+    secAsOf: e?.sharesAsOf ?? null,
+    marketCap: m?.marketCap ?? null,
+    price: m?.price ?? null,
+    splits,
+    today,
+  });
+  if (sh.adjustedFrom != null && sh.shares != null && sh.split) {
+    const fmt = (n: number) => `${(n / 1e6).toLocaleString("en-US", { maximumFractionDigits: 1 })}M`;
+    warnings.push(
+      `${t} had a ${splitLabel(sh.split)} stock split on ${sh.split.date}. The reported share count (${fmt(sh.adjustedFrom)}) predates it, so it was adjusted to ${fmt(sh.shares)}.`,
+    );
+  }
+  const lastSplit = splits.at(-1);
+
   const lastYear = historicals.at(-1);
   const financial = isFinancial({ sector: m?.sector, industry: m?.industry });
   // Financials get an approach note in the workbench instead, since it depends on the toggle.
@@ -68,13 +90,14 @@ export async function getCompany(ticker: string): Promise<CompanyData> {
     industry: m?.industry,
     description: m?.description,
     price: m?.price ?? null,
-    sharesOutstanding: m?.sharesOutstanding ?? e?.sharesOutstanding ?? null,
+    sharesOutstanding: sh.shares,
     marketCap: m?.marketCap ?? null,
     beta: m?.beta ?? null,
     historicals,
     riskFreeRate: r,
     sources,
     warnings,
+    lastSplit: lastSplit && lastSplit.date > new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10) ? lastSplit : undefined,
     fetchedAt: new Date().toISOString(),
   };
 }
