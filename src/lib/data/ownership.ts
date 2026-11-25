@@ -3,6 +3,7 @@ import { loadTickerMap, secHeaders } from "./edgar";
 import {
   latestHolders,
   parseForm4,
+  parseLegacySchedule13,
   parseSchedule13,
   summarizeInsiders,
   type InsiderTxn,
@@ -86,14 +87,12 @@ export async function getOwnership(ticker: string): Promise<OwnershipData | null
 
   const form4: { acc: string; filed: string; doc: string }[] = [];
   const sched: { acc: string; filed: string; doc: string; form: string }[] = [];
-  let legacy13 = 0;
   for (let i = 0; i < r.form.length; i++) {
     const form = r.form[i];
     const filed = r.filingDate[i];
     const doc = r.primaryDocument[i] ?? "";
     if (form === "4" && filed >= sinceIso) form4.push({ acc: r.accessionNumber[i], filed, doc });
-    else if (/^SCHEDULE 13[DG]/.test(form) && filed >= since13) sched.push({ acc: r.accessionNumber[i], filed, doc, form });
-    else if (/^SC 13[DG]/.test(form) && filed >= since13) legacy13++;
+    else if (/^(SCHEDULE|SC) 13[DG]/.test(form) && filed >= since13) sched.push({ acc: r.accessionNumber[i], filed, doc, form });
   }
 
   const notes: string[] = [];
@@ -108,17 +107,17 @@ export async function getOwnership(ticker: string): Promise<OwnershipData | null
       return xml ? parseForm4(xml, { filed: f.filed, url: u.view, issuerCik: cik }) : [];
     }),
     mapLimit(sched.slice(0, MAX_SCHEDULE13), 3, async (f) => {
-      if (!/\.xml$/i.test(f.doc)) return null;
+      if (!f.doc) return null;
       const u = docUrls(cik, f.acc, f.doc);
-      const xml = await fetchDoc(u.raw);
-      return xml ? parseSchedule13(xml, { form: f.form, filed: f.filed, url: u.view }) : null;
+      const body = await fetchDoc(u.raw);
+      if (!body) return null;
+      const meta = { form: f.form.replace(/^SC /, "SCHEDULE "), filed: f.filed, url: u.view };
+      return /\.xml$/i.test(f.doc) ? parseSchedule13(body, meta) : parseLegacySchedule13(body, meta);
     }),
   ]);
 
   const insiders = insiderLists.flat().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const holders = latestHolders(holderList.filter((h): h is MajorHolder => h != null));
-  if (legacy13 && !holders.length)
-    notes.push("Large holders filed in SEC's older text format (before December 2024), which isn't read here.");
 
   return {
     ticker: entry.ticker,

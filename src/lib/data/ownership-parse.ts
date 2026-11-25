@@ -209,11 +209,50 @@ export function parseSchedule13(xml: string, meta: { form: string; filed: string
   };
 }
 
+/**
+ * Schedule 13G/13D filed before December 2024 are free text or HTML. The cover page still follows
+ * SEC's numbered rows, so the first reporting person (usually the parent) can be read from them.
+ */
+export function parseLegacySchedule13(doc: string, meta: { form: string; filed: string; url: string }): MajorHolder | null {
+  const t = decode(doc.replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/&nbsp;/gi, " ").replace(/\s+/g, " ");
+  const nameM = t.match(/NAMES? OF REPORTING PERSONS?\.?:?\s*(.{2,200})/i);
+  const pctM = t.match(/PERCENT OF CLASS REPRESENTED BY AMOUNT IN ROW\s*\(?\s*(?:9|11)\s*\)?\.?\s*:?\s*(?:\(\s*\d+\s*\)\s*)?([\d.]+)\s*%/i);
+  if (!nameM || !pctM) return null;
+  const name = nameM[1]
+    .replace(/^(?:S\.S\. OR )?I\.?R\.?S\.? IDENTIFICATION NOS?\.? OF (?:THE )?ABOVE PERSONS?(?: \(?ENTITIES ONLY\)?)?\.?:?\s*/i, "")
+    .split(/\s(?:\(?2\)?\.?\s*CHECK|CHECK THE APPROPRIATE|-?\s*\(?\d{2}-\d{7}\)?|I\.?R\.?S\.?|2\.\s)/i)[0]
+    .replace(/^[\s:.\-]+|[\s:,\-]+$/g, "")
+    .trim();
+  const percent = parseFloat(pctM[1]);
+  if (!name || name.length > 100 || !Number.isFinite(percent) || percent > 100) return null;
+  const sharesM = t.match(/AGGREGATE AMOUNT BENEFICIALLY OWNED BY EACH REPORTING PERSON\.?\s*:?\s*([\d,]{1,20})/i);
+  return {
+    name: prettyName(name),
+    cik: null,
+    percent,
+    shares: sharesM ? num(sharesM[1]) : null,
+    form: meta.form,
+    eventDate: null,
+    filed: meta.filed,
+    passive: !/13D/i.test(meta.form),
+    url: meta.url,
+  };
+}
+
+const holderKey = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\b(the|inc|incorporated|corp|corporation|llc|lp|ltd|co|plc)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 /** Keep each holder's latest filing, largest stake first. Holders whose latest filing is below 5% sort last. */
 export function latestHolders(all: MajorHolder[]): MajorHolder[] {
   const byKey = new Map<string, MajorHolder>();
   for (const h of all) {
-    const k = h.cik ?? h.name.toLowerCase();
+    // By name: older text filings carry no CIK for the holder.
+    const k = holderKey(h.name);
     const prev = byKey.get(k);
     if (!prev || h.filed > prev.filed) byKey.set(k, h);
   }
