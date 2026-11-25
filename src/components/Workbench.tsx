@@ -154,6 +154,7 @@ function Ready() {
   const backToMarketPrice = useModel((s) => s.backToMarketPrice);
   const priceManual = useModel((s) => s.priceManual);
   const refresh = useRefresh(c);
+  const canRefresh = c.ticker !== "DEMO" && c.sources[0] !== "Manual inputs";
   const live = useLiveQuotes([c.ticker])[c.ticker];
   useEffect(() => {
     if (live?.price) setLivePrice(live.price);
@@ -207,6 +208,18 @@ function Ready() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="text-[clamp(22px,3.2vw,36px)] font-bold leading-[1.1] tracking-[-0.02em]">{c.name}</h1>
             <FollowButton ticker={c.ticker} />
+            {canRefresh && (
+              <button
+                type="button"
+                onClick={refresh.run}
+                disabled={refresh.busy}
+                title="Fetch the latest price, shares outstanding, filings, beta and Treasury yield, skipping cached data. Values you typed yourself stay."
+                className="inline-flex items-center gap-1.5 rounded-[3px] border border-brass px-2.5 py-1 text-[12.5px] font-semibold text-brass hover:bg-brass-soft disabled:opacity-60"
+              >
+                <RefreshCw className={clsx("size-3.5", refresh.busy && "animate-spin")} aria-hidden />
+                {refresh.busy ? "Refreshing…" : "Refresh data"}
+              </button>
+            )}
             {[c.exchange, c.industry].filter(Boolean).map((t) => (
               <span key={t} className="rounded-[3px] border border-rule bg-sunk px-2 py-0.5 text-[11px] text-muted">
                 {t}
@@ -228,20 +241,12 @@ function Ready() {
                 <dd className="text-ink">{val}</dd>
               </div>
             ))}
-            {c.ticker !== "DEMO" && c.sources[0] !== "Manual inputs" && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={refresh.run}
-                  disabled={refresh.busy}
-                  title="Fetch the latest price, shares outstanding, filings, beta and Treasury yield, skipping cached data. Values you typed yourself stay."
-                  className="inline-flex items-center gap-1 text-brass hover:underline disabled:opacity-60"
-                >
-                  <RefreshCw className={clsx("size-3", refresh.busy && "animate-spin")} aria-hidden />
-                  {refresh.busy ? "Refreshing…" : "Refresh data"}
-                </button>
-                <span className="text-faint" title={`Data fetched ${new Date(c.fetchedAt).toLocaleString()}`}>
-                  as of {timeAgo(c.fetchedAt)}
-                </span>
+            {canRefresh && (
+              <div className="flex gap-1.5">
+                <dt className="text-brass">DATA</dt>
+                <dd className="text-ink" title={`Fetched ${new Date(c.fetchedAt).toLocaleString()}`}>
+                  {timeAgo(c.fetchedAt)}
+                </dd>
               </div>
             )}
           </dl>
