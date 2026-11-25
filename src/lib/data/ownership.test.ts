@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestHolders, parseForm4, parseSchedule13, summarizeInsiders, text } from "./ownership-parse";
+import { latestHolders, parseForm4, parseLegacySchedule13, parseSchedule13, summarizeInsiders, text } from "./ownership-parse";
 
 const FORM4 = `<?xml version="1.0"?>
 <ownershipDocument>
@@ -114,5 +114,52 @@ describe("insider summary", () => {
     expect(s).toMatchObject({ buyValue: 100, sellValue: 400, buyers: 1, sellers: 2, plannedSellShare: 0.75 });
     expect(s.monthly).toHaveLength(6);
     expect(s.monthly.at(-1)).toEqual({ month: "2026-11", buy: 100, sell: 0 });
+  });
+});
+
+const LEGACY_TXT = `SCHEDULE 13G
+Amendment No: 15
+Apple Inc.
+(Name of Issuer)
+CUSIP NO. 037833100
+1. NAME OF REPORTING PERSON
+I.R.S. IDENTIFICATION NO. OF ABOVE PERSON
+BlackRock, Inc.
+2. CHECK THE APPROPRIATE BOX IF A MEMBER OF A GROUP
+(a) [ ]
+(b) [X]
+3. SEC USE ONLY
+4. CITIZENSHIP OR PLACE OF ORGANIZATION
+Delaware
+9. AGGREGATE AMOUNT BENEFICIALLY OWNED BY EACH REPORTING PERSON
+1,042,147,045
+11. PERCENT OF CLASS REPRESENTED BY AMOUNT IN ROW 9
+6.7%
+12. TYPE OF REPORTING PERSON
+HC`;
+
+const LEGACY_HTML = `<html><body><table>
+<tr><td>(1)</td><td>Names of reporting persons<br>The Vanguard Group - 23-1945930</td></tr>
+<tr><td>(2)</td><td>Check the appropriate box if a member of a group</td></tr>
+<tr><td>(9)</td><td>Aggregate amount beneficially owned by each reporting person<br>1,317,966,471</td></tr>
+<tr><td>(11)</td><td>Percent of class represented by amount in Row (9)<br>8.47%</td></tr>
+</table></body></html>`;
+
+describe("legacy Schedule 13G", () => {
+  const meta = { form: "SCHEDULE 13G/A", filed: "2024-02-13", url: "u" };
+  it("reads plain-text cover pages", () => {
+    expect(parseLegacySchedule13(LEGACY_TXT, meta)).toMatchObject({ name: "BlackRock, Inc.", percent: 6.7, shares: 1042147045, passive: true });
+  });
+  it("reads HTML cover pages", () => {
+    expect(parseLegacySchedule13(LEGACY_HTML, meta)).toMatchObject({ name: "The Vanguard Group", percent: 8.47, shares: 1317966471 });
+  });
+  it("returns null when the cover page can't be read", () => {
+    expect(parseLegacySchedule13("<p>Exhibit 99</p>", meta)).toBeNull();
+  });
+  it("matches a holder across old and new filings by name", () => {
+    const old = parseLegacySchedule13(LEGACY_TXT, meta)!;
+    const out = latestHolders([old, { ...old, cik: "1364742", name: "BlackRock Inc", percent: 7.1, filed: "2026-02-01" }]);
+    expect(out).toHaveLength(1);
+    expect(out[0].percent).toBe(7.1);
   });
 });
