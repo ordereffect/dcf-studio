@@ -15,9 +15,8 @@ import { TickerSearch } from "./TickerSearch";
 import { ThemeToggle } from "./ThemeToggle";
 import { InfoTip } from "./InfoTip";
 import { Tour, TourButton } from "./Tour";
-import { ValueRail } from "./ValueRail";
+import { ValuationCard } from "./ValuationCard";
 import { AssumptionsPanel } from "./AssumptionsPanel";
-import { Stat } from "./ui";
 import { FollowButton, WatchlistLink } from "./FollowButton";
 import { LiveBadge } from "./LiveBadge";
 import { PriceChart } from "./PriceChart";
@@ -286,54 +285,60 @@ function Ready() {
       </section>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-      <section
-        data-tour="rail"
-        className={clsx(
-          "relative min-w-0 rounded-[7px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8",
-          c.ticker === "DEMO" ? "lg:col-span-3" : "lg:col-span-2",
-        )}
-      >
-        <div className="absolute right-3 top-3">
-          <InfoTip id="rail" />
-        </div>
-        <ValueRail
-          currency={c.currency}
-          price={price}
-          base={v.valuePerShare}
-          bear={bear}
-          bull={bull}
-          weighted={sv.weighted}
-          p10={mc.p10}
-          p90={mc.p90}
-        />
-        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-rule pt-4 sm:grid-cols-3">
-          {T.eq ? (
-            <Stat
-              label="Book equity"
-              info="bookEquity"
-              value={big(bookEquity, c.currency)}
-              sub={mcap && bookEquity && bookEquity > 0 ? `Price / book ${mult(mcap / bookEquity)}` : undefined}
-            />
-          ) : (
-            <Stat label="Enterprise value" info="enterpriseValue" value={big(v.enterpriseValue, c.currency)} />
-          )}
-          <Stat label="Equity value" info={T.equityValueLesson} value={big(v.equityValue, c.currency)} sub={mcap ? `Market cap ${big(mcap, c.currency)}` : undefined} />
-          {T.eq ? (
-            <Stat label="Cost of equity" info="costOfEquity" value={pct(v.wacc.wacc, 2)} sub="Discount rate (equity approach)" />
-          ) : (
-            <Stat label="WACC" info="costOfCapital" value={pct(v.wacc.wacc, 2)} sub={`Cost of equity ${pct(v.wacc.costOfEquity, 1)}`} />
-          )}
-          <Stat
-            label="Terminal value share"
-            info="terminalShare"
-            value={pct(v.terminalShare, 0)}
-            sub={Number.isFinite(v.terminalShare) ? undefined : "Not meaningful: value ≤ 0"}
-            tone={v.terminalShare > 0.8 ? "down" : undefined}
-          />
-          <Stat label={`Year-${liveA.forecastYears} ${T.returns}`} info={T.returnsLesson} value={pct(v.years.at(-1)?.roic)} sub={`vs ${T.rate.replace("Cost of equity", "cost of equity")} ${pct(v.wacc.wacc, 1)}`} />
-          <Stat label="Weighted value" info="weighted" value={money(sv.weighted, c.currency)} sub={price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined} />
-        </div>
-      </section>
+      <ValuationCard
+        className={c.ticker === "DEMO" ? "lg:col-span-3" : "lg:col-span-2"}
+        currency={c.currency}
+        price={price}
+        base={v.valuePerShare}
+        bear={bear}
+        bull={bull}
+        weighted={sv.weighted}
+        p10={mc.p10}
+        p90={mc.p90}
+        metrics={[
+          T.eq
+            ? {
+                label: "Book equity",
+                info: "bookEquity",
+                value: big(bookEquity, c.currency),
+                sub: mcap && bookEquity && bookEquity > 0 ? `Price / book ${mult(mcap / bookEquity)}` : undefined,
+              }
+            : {
+                label: "Enterprise value",
+                info: "enterpriseValue",
+                value: big(v.enterpriseValue, c.currency),
+                sub: Number.isFinite(v.terminalShare) ? `${pct(1 - v.terminalShare, 0)} from the forecast years` : undefined,
+              },
+          {
+            label: "Equity value",
+            info: T.equityValueLesson,
+            value: big(v.equityValue, c.currency),
+            sub: mcap ? `Market cap ${big(mcap, c.currency)}` : undefined,
+          },
+          T.eq
+            ? { label: "Cost of equity", info: "costOfEquity", value: pct(v.wacc.wacc, 2), sub: "Discount rate (equity approach)" }
+            : { label: "WACC", info: "costOfCapital", value: pct(v.wacc.wacc, 2), sub: `Cost of equity ${pct(v.wacc.costOfEquity, 1)}` },
+          {
+            label: "Terminal value share",
+            info: "terminalShare",
+            value: pct(v.terminalShare, 0),
+            sub: Number.isFinite(v.terminalShare) ? (v.terminalShare > 0.8 ? "Above 80%: fragile" : "Caution above 80%") : "Not meaningful: value ≤ 0",
+            tone: v.terminalShare > 0.8 ? "down" : undefined,
+          },
+          {
+            label: `Year-${liveA.forecastYears} ${T.returns}`,
+            info: T.returnsLesson,
+            value: pct(v.years.at(-1)?.roic),
+            sub: `vs ${T.rate.replace("Cost of equity", "cost of equity")} ${pct(v.wacc.wacc, 1)}`,
+          },
+          {
+            label: "Weighted value",
+            info: "weighted",
+            value: money(sv.weighted, c.currency),
+            sub: price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined,
+          },
+        ]}
+      />
 
       <PriceChart ticker={c.ticker} exchange={c.exchange} />
       </div>
