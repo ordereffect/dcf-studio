@@ -87,7 +87,7 @@ export function TickerSearch({ size = "sm", autoFocus }: { size?: "sm" | "lg"; a
         <ul
           id="ticker-results"
           role="listbox"
-          className="absolute z-30 mt-1 w-full overflow-hidden rounded-[3px] border border-rule bg-surface"
+          className="absolute z-30 mt-1 w-full overflow-hidden rounded-[7px] border border-rule bg-surface"
         >
           {hits.map((h, i) => (
             <li key={h.ticker} role="option" aria-selected={i === active}>

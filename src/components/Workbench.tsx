@@ -125,7 +125,7 @@ export function Workbench({ ticker }: { ticker: string }) {
             >
               Model {ticker} by hand
             </button>
-            <Link href="/t/DEMO" className="rounded-[3px] border border-rule px-4 py-2 text-[14px] text-muted hover:text-ink">
+            <Link href="/t/DEMO" className="rounded-[3px] border border-rule px-4 py-2 text-[14px] text-brass hover:opacity-80">
               Open the sample company
             </Link>
           </div>
@@ -140,7 +140,7 @@ function Loading({ ticker }: { ticker: string }) {
   return (
     <main className="mx-auto max-w-[1440px] px-4 py-16 sm:px-6">
       <p className="text-[15px] text-muted">Reading {ticker}&apos;s filings and market data…</p>
-      <div className="mt-6 h-[124px] animate-pulse rounded-[3px] bg-surface" />
+      <div className="mt-6 h-[124px] animate-pulse rounded-[7px] bg-surface" />
     </main>
   );
 }
@@ -289,7 +289,7 @@ function Ready() {
       <section
         data-tour="rail"
         className={clsx(
-          "relative min-w-0 rounded-[3px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8",
+          "relative min-w-0 rounded-[7px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8",
           c.ticker === "DEMO" ? "lg:col-span-3" : "lg:col-span-2",
         )}
       >
@@ -353,7 +353,7 @@ function Ready() {
         <aside className="lg:sticky lg:top-[64px] lg:max-h-[calc(100dvh-80px)] lg:self-start lg:overflow-y-auto lg:pr-2">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[16px] font-semibold">Assumptions</h2>
-            <button onClick={reset} className="inline-flex items-center gap-1.5 text-[12.5px] text-muted hover:text-ink" title="Back to values derived from filings">
+            <button onClick={reset} className="inline-flex items-center gap-1.5 text-[12.5px] text-brass hover:opacity-80" title="Back to values derived from filings">
               <RotateCcw className="size-3.5" aria-hidden />
               Reset all
             </button>

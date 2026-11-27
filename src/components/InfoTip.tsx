@@ -92,7 +92,7 @@ export function InfoTip({ id, className }: { id: LessonId; className?: string })
               width: Math.min(320, window.innerWidth - 24),
               transform: pos.above ? "translateY(-100%)" : undefined,
             }}
-            className="fixed z-[70] rounded-[3px] border border-rule bg-surface p-3 font-sans shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]"
+            className="fixed z-[70] rounded-[7px] border border-rule bg-surface p-3 font-sans shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)]"
           >
             <div className="mb-1.5 text-[12px] font-bold text-brass">{lesson.title}</div>
             <LessonBody lesson={lesson} />

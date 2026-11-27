@@ -141,7 +141,7 @@ function ImpliedCard({
   note?: string;
 }) {
   return (
-    <div className="rounded-[3px] border border-rule p-4">
+    <div className="rounded-[7px] border border-rule p-4">
       <div className="text-[12.5px] text-muted">{label}</div>
       <div className="num mt-1 text-[28px] font-semibold leading-none">{Number.isFinite(implied) ? pct(implied) : "Out of range"}</div>
       <dl className="num mt-3 grid gap-1 text-[12px] text-muted">

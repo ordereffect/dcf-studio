@@ -238,7 +238,7 @@ export function Tour() {
           <button
             onClick={prev}
             disabled={i === 0}
-            className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-muted hover:text-ink disabled:opacity-30"
+            className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-brass hover:opacity-80 disabled:opacity-30"
           >
             <ArrowLeft className="size-3.5" aria-hidden />
             Previous

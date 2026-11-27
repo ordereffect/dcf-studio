@@ -301,7 +301,7 @@ export function Watchlist() {
                 }}
                 disabled={loading}
                 title="Fetch the latest prices, shares outstanding and filings, skipping cached data"
-                className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-muted hover:text-ink disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-brass hover:opacity-80 disabled:opacity-60"
               >
                 <RefreshCw className={clsx("size-3.5", loading && "animate-spin")} aria-hidden />
                 Refresh
@@ -309,7 +309,7 @@ export function Watchlist() {
               <button
                 onClick={copyLink}
                 title="Open this link on another device or browser to bring your list there"
-                className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-muted hover:text-ink"
+                className="inline-flex items-center gap-1.5 rounded-[3px] border border-rule px-3 py-1.5 text-[12.5px] text-brass hover:opacity-80"
               >
                 <Link2 className="size-3.5" aria-hidden />
                 {copied ? "Link copied" : "Copy sync link"}
@@ -351,7 +351,7 @@ export function Watchlist() {
         {quoteError && <p className="mt-4 text-[13px] text-down">Couldn&apos;t refresh quotes: {quoteError}</p>}
 
         {mounted && list.length === 0 ? (
-          <div className="mt-10 rounded-[3px] border border-dashed border-rule px-6 py-12 text-center">
+          <div className="mt-10 rounded-[7px] border border-dashed border-rule px-6 py-12 text-center">
             <Star className="mx-auto size-6 text-brass" aria-hidden />
             <p className="mt-3 text-[15px] font-semibold">No stocks yet</p>
             <p className="mt-1 text-[13px] text-muted">
@@ -359,7 +359,7 @@ export function Watchlist() {
             </p>
           </div>
         ) : (
-          <div className="relative mt-5 overflow-x-auto rounded-[3px] border border-rule">
+          <div className="relative mt-5 overflow-x-auto rounded-[7px] border border-rule">
             <table className="w-full min-w-[1280px] border-collapse text-[13px]">
               <thead>
                 <tr className="border-b border-rule bg-surface text-left">
@@ -433,7 +433,7 @@ function AddTickers() {
         placeholder="Add tickers, e.g. AAPL, MSFT"
         autoCapitalize="characters"
         autoComplete="off"
-        className="num min-w-0 flex-1 rounded-[3px] border border-rule bg-surface px-3 py-1.5 text-[13px] outline-none placeholder:text-faint focus-visible:border-brass"
+        className="num min-w-0 flex-1 rounded-[7px] border border-rule bg-surface px-3 py-1.5 text-[13px] outline-none placeholder:text-faint focus-visible:border-brass"
       />
       <button type="submit" className="rounded-[3px] bg-brass px-3 py-1.5 text-[12.5px] font-semibold text-[#111]">
         Add

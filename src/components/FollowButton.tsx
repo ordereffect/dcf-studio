@@ -16,7 +16,7 @@ export function FollowButton({ ticker }: { ticker: string }) {
       title={on ? "Remove from your watchlist" : "Add to your watchlist"}
       className={clsx(
         "inline-flex items-center gap-1.5 rounded-[3px] border px-2.5 py-1 text-[12.5px] font-semibold",
-        on ? "border-brass bg-brass-soft text-brass" : "border-rule text-muted hover:border-brass hover:text-ink",
+        on ? "border-brass bg-brass-soft text-brass" : "border-rule text-brass hover:border-brass",
       )}
     >
       <Star className={clsx("size-3.5", on && "fill-current")} aria-hidden />

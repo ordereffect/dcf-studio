@@ -4,20 +4,20 @@
 /* Terminal palette: near-black, amber-orange accent, phosphor green / red for up and down.
    Dark is the default; [data-theme="light"] is the daylight variant. */
 :root {
-  --paper: #111111;
-  --surface: #161616;
+  --paper: #0f0f0f;
+  --surface: #101010;
   --sunk: #1d1d1d;
   --ink: #ececec;
   --muted: #9b9b9b;
   --faint: #626262;
-  --rule: #2a2a2a;
-  --brass: #ff9f1c;
-  --brass-soft: rgba(255, 159, 28, 0.16);
+  --rule: #1a1a1a;
+  --brass: #ff6900;
+  --brass-soft: rgba(255, 105, 0, 0.16);
   --up: #3ddc84;
   --up-soft: rgba(61, 220, 132, 0.14);
   --down: #ff5c4d;
   --down-soft: rgba(255, 92, 77, 0.14);
-  --focus: #ff9f1c;
+  --focus: #ff6900;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -54,6 +54,15 @@
   --color-down-soft: var(--down-soft);
   --font-sans: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Titles use the accent; an explicit text-* class on a heading still wins. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    color: var(--brass);
+  }
 }
 
 html,

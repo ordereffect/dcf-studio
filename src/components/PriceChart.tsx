@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
-import clsx from "clsx";
 
 /** TradingView wants an exchange prefix to pick the right listing; Yahoo names exchanges its own way. */
 export function tradingViewSymbol(ticker: string, exchange?: string): string {
@@ -32,12 +30,11 @@ function useTheme() {
 export function PriceChart({ ticker, exchange }: { ticker: string; exchange?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const theme = useTheme();
-  const [open, setOpen] = useState(true);
   const symbol = tradingViewSymbol(ticker, exchange);
 
   useEffect(() => {
     const el = host.current;
-    if (!el || !open) return;
+    if (!el) return;
     el.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
     const s = document.createElement("script");
     s.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
@@ -57,36 +54,20 @@ export function PriceChart({ ticker, exchange }: { ticker: string; exchange?: st
       withdateranges: true,
       details: false,
       calendar: false,
-      backgroundColor: theme === "dark" ? "#161616" : "#ffffff",
-      gridColor: theme === "dark" ? "rgba(42,42,42,0.6)" : "rgba(224,224,224,0.6)",
+      backgroundColor: theme === "dark" ? "#101010" : "#ffffff",
+      gridColor: theme === "dark" ? "rgba(40,40,40,0.6)" : "rgba(224,224,224,0.6)",
       support_host: "https://www.tradingview.com",
     });
     el.appendChild(s);
     return () => {
       el.innerHTML = "";
     };
-  }, [symbol, theme, open]);
+  }, [symbol, theme]);
 
   if (ticker === "DEMO") return null;
   return (
-    <section
-      className={clsx(
-        "flex min-w-0 flex-col self-start rounded-[3px] border border-rule bg-surface",
-        open && "lg:aspect-square",
-      )}
-    >
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        className="flex w-full shrink-0 items-center justify-between px-5 py-3 text-left text-[14px] font-bold"
-      >
-        Price chart
-        <span className="flex items-center gap-2 text-[11.5px] font-normal text-faint">
-          TradingView
-          <ChevronDown className={clsx("size-4 transition-transform", open && "rotate-180")} aria-hidden />
-        </span>
-      </button>
-      {open && <div ref={host} className="tradingview-widget-container h-[380px] border-t border-rule sm:h-[440px] lg:h-auto lg:min-h-0 lg:flex-1" />}
+    <section className="flex min-w-0 flex-col self-start overflow-hidden rounded-[7px] border border-rule bg-surface lg:aspect-square" aria-label="Price chart">
+      <div ref={host} className="tradingview-widget-container h-[380px] sm:h-[440px] lg:h-auto lg:min-h-0 lg:flex-1" />
     </section>
   );
 }

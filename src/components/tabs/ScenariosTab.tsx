@@ -29,7 +29,7 @@ export function ScenariosTab({ a, currency, price }: { a: Assumptions; currency:
             const w = runDcf(sa).wacc.wacc;
             const up = price ? value / price - 1 : NaN;
             return (
-              <div key={s.id} className={clsx("rounded-[3px] border p-4", s.id === "base" ? "border-brass" : "border-rule")}>
+              <div key={s.id} className={clsx("rounded-[7px] border p-4", s.id === "base" ? "border-brass" : "border-rule")}>
                 <div className="flex items-baseline justify-between">
                   <h3 className="text-[15px] font-semibold">{s.label}</h3>
                   <span className={clsx("num text-[12px]", up >= 0 ? "text-up" : "text-down")}>{signedPct(up)}</span>

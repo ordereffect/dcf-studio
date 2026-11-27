@@ -18,7 +18,7 @@ export function Panel({
   tour?: string;
 }) {
   return (
-    <section data-tour={tour} className={clsx("rounded-[3px] border border-rule bg-surface p-5", className)}>
+    <section data-tour={tour} className={clsx("rounded-[7px] border border-rule bg-surface p-5", className)}>
       {(title || note) && (
         <header className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           {title && (

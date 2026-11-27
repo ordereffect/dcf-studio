@@ -58,7 +58,7 @@ export function BriefTab({ c, a, price }: { c: CompanyData; a: Assumptions; pric
           </button>
           <button
             onClick={download}
-            className="inline-flex items-center gap-2 rounded-[3px] border border-rule px-4 py-2 text-[13.5px] text-muted hover:text-ink"
+            className="inline-flex items-center gap-2 rounded-[3px] border border-rule px-4 py-2 text-[13.5px] text-brass hover:opacity-80"
           >
             <Download className="size-4" aria-hidden />
             Download .md
