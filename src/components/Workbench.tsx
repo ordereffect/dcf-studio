@@ -163,11 +163,6 @@ function Ready() {
   const tab = useUi((s) => s.tab);
   const setTab = useUi((s) => s.setTab);
   const tourOpen = useUi((s) => s.tourOpen);
-  // Design proposal: ?card=b shows direction B of the valuation card; anything else shows A.
-  const [cardVariant, setCardVariant] = useState<"a" | "b">("a");
-  useEffect(() => {
-    setCardVariant(new URLSearchParams(window.location.search).get("card") === "b" ? "b" : "a");
-  }, []);
 
   // Terminal-style shortcuts: number keys switch views when you're not typing.
   useEffect(() => {
@@ -291,7 +286,6 @@ function Ready() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
       <ValuationCard
-        variant={cardVariant}
         className={c.ticker === "DEMO" ? "lg:col-span-3" : "lg:col-span-2"}
         currency={c.currency}
         price={price}
@@ -320,7 +314,6 @@ function Ready() {
             info: T.equityValueLesson,
             value: big(v.equityValue, c.currency),
             sub: mcap ? `Market cap ${big(mcap, c.currency)}` : undefined,
-            viz: mcap ? { kind: "compare", a: { label: "DCF", v: v.equityValue }, b: { label: "Mkt", v: mcap } } : undefined,
           },
           T.eq
             ? { label: "Cost of equity", info: "costOfEquity", value: pct(v.wacc.wacc, 2), sub: "Discount rate (equity approach)" }
@@ -331,21 +324,18 @@ function Ready() {
             value: pct(v.terminalShare, 0),
             sub: Number.isFinite(v.terminalShare) ? (v.terminalShare > 0.8 ? "Above 80%: fragile" : "Caution above 80%") : "Not meaningful: value ≤ 0",
             tone: v.terminalShare > 0.8 ? "down" : undefined,
-            viz: Number.isFinite(v.terminalShare) ? { kind: "meter", frac: v.terminalShare, warnAt: 0.8 } : undefined,
           },
           {
             label: `Year-${liveA.forecastYears} ${T.returns}`,
             info: T.returnsLesson,
             value: pct(v.years.at(-1)?.roic),
             sub: `vs ${T.rate.replace("Cost of equity", "cost of equity")} ${pct(v.wacc.wacc, 1)}`,
-            viz: { kind: "compare", a: { label: "Ret", v: v.years.at(-1)?.roic ?? 0 }, b: { label: "Cost", v: v.wacc.wacc } },
           },
           {
             label: "Weighted value",
             info: "weighted",
             value: money(sv.weighted, c.currency),
             sub: price ? `${signedPct(sv.weighted / price - 1)} vs price` : undefined,
-            viz: price ? { kind: "delta", v: sv.weighted / price - 1 } : undefined,
           },
         ]}
       />
