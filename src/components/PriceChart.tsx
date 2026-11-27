@@ -69,11 +69,16 @@ export function PriceChart({ ticker, exchange }: { ticker: string; exchange?: st
 
   if (ticker === "DEMO") return null;
   return (
-    <section className="mt-6 rounded-[3px] border border-rule bg-surface">
+    <section
+      className={clsx(
+        "flex min-w-0 flex-col self-start rounded-[3px] border border-rule bg-surface",
+        open && "lg:aspect-square",
+      )}
+    >
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between px-5 py-3 text-left text-[14px] font-bold"
+        className="flex w-full shrink-0 items-center justify-between px-5 py-3 text-left text-[14px] font-bold"
       >
         Price chart
         <span className="flex items-center gap-2 text-[11.5px] font-normal text-faint">
@@ -81,7 +86,7 @@ export function PriceChart({ ticker, exchange }: { ticker: string; exchange?: st
           <ChevronDown className={clsx("size-4 transition-transform", open && "rotate-180")} aria-hidden />
         </span>
       </button>
-      {open && <div ref={host} className="tradingview-widget-container h-[380px] border-t border-rule sm:h-[440px]" />}
+      {open && <div ref={host} className="tradingview-widget-container h-[380px] border-t border-rule sm:h-[440px] lg:h-auto lg:min-h-0 lg:flex-1" />}
     </section>
   );
 }

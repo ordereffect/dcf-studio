@@ -285,7 +285,14 @@ function Ready() {
         </div>
       </section>
 
-      <section data-tour="rail" className="relative mt-6 rounded-[3px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8">
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <section
+        data-tour="rail"
+        className={clsx(
+          "relative min-w-0 rounded-[3px] border border-rule bg-surface px-5 pb-4 pt-5 sm:px-8",
+          c.ticker === "DEMO" ? "lg:col-span-3" : "lg:col-span-2",
+        )}
+      >
         <div className="absolute right-3 top-3">
           <InfoTip id="rail" />
         </div>
@@ -299,7 +306,7 @@ function Ready() {
           p10={mc.p10}
           p90={mc.p90}
         />
-        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-rule pt-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-5 grid grid-cols-2 gap-4 border-t border-rule pt-4 sm:grid-cols-3">
           {T.eq ? (
             <Stat
               label="Book equity"
@@ -329,6 +336,7 @@ function Ready() {
       </section>
 
       <PriceChart ticker={c.ticker} exchange={c.exchange} />
+      </div>
 
       {warnings.length > 0 && (
         <ul className="mt-4 grid gap-1.5">
