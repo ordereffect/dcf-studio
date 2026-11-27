@@ -11,13 +11,13 @@
   --muted: #9b9b9b;
   --faint: #626262;
   --rule: #1a1a1a;
-  --brass: #ff6900;
-  --brass-soft: rgba(255, 105, 0, 0.16);
+  --brass: #ff841d;
+  --brass-soft: rgba(255, 132, 29, 0.16);
   --up: #3ddc84;
   --up-soft: rgba(61, 220, 132, 0.14);
   --down: #ff5c4d;
   --down-soft: rgba(255, 92, 77, 0.14);
-  --focus: #ff6900;
+  --focus: #ff841d;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
